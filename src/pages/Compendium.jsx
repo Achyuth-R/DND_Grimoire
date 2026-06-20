@@ -6,6 +6,12 @@ import { BACKGROUNDS } from '../data/backgrounds.js'
 import { ALL_SPELLS, spellLevelName } from '../data/spells.js'
 import { MONSTERS, crLabel } from '../data/monsters.js'
 import { SKILLS } from '../data/abilities.js'
+import { FEATS } from '../data/feats.js'
+import { ITEMS } from '../data/items.js'
+import { CONDITIONS } from '../data/conditions.js'
+import { DEITIES } from '../data/deities.js'
+import { MECHANICS } from '../data/mechanics.js'
+import { HAZARDS } from '../data/hazards.js'
 
 const skillName = (k) => SKILLS.find((s) => s.key === k)?.name || k
 
@@ -14,8 +20,14 @@ const TABS = [
   { key: 'subclasses', label: 'Subclasses' },
   { key: 'races', label: 'Races' },
   { key: 'backgrounds', label: 'Backgrounds' },
+  { key: 'feats', label: 'Feats' },
   { key: 'spells', label: 'Spells' },
+  { key: 'items', label: 'Items & Gear' },
   { key: 'monsters', label: 'Bestiary' },
+  { key: 'conditions', label: 'Conditions' },
+  { key: 'deities', label: 'Deities' },
+  { key: 'mechanics', label: 'Mechanics' },
+  { key: 'hazards', label: 'Hazards' },
 ]
 const SPELL_LEVELS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -201,6 +213,90 @@ export default function Compendium() {
           </>
         )
       })()}
+
+      {tab === 'feats' && (
+        <>
+          <div className="hint" style={{ marginBottom: 14 }}>{FEATS.length} feats from PHB, Xanathar's, and Tasha's.</div>
+          <div className="grid">
+            {FEATS.filter((f) => match(f.name) || match(f.desc)).map((f) => (
+              <Link key={f.name} to={`/compendium/feat/${encodeURIComponent(f.name)}`} className="card">
+                <div className="stripe" style={{ background: '#e67e22' }} />
+                <div className="icon">🏃</div>
+                <h3 style={{ margin: '0 0 6px' }}>{f.name}</h3>
+                <div className="sub">{f.desc.slice(0, 80)}...</div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === 'items' && (
+        <>
+          <div className="hint" style={{ marginBottom: 14 }}>{ITEMS.length} standard gear and magic items.</div>
+          <div className="grid">
+            {ITEMS.filter((i) => match(i.name) || match(i.desc)).map((i) => (
+              <Link key={i.name} to={`/compendium/item/${encodeURIComponent(i.name)}`} className="card">
+                <div className="stripe" style={{ background: '#f1c40f' }} />
+                <div className="icon">⚔️</div>
+                <h3 style={{ margin: '0 0 6px' }}>{i.name}</h3>
+                <div className="sub">{i.desc.slice(0, 80)}...</div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === 'conditions' && (
+        <div className="grid">
+          {CONDITIONS.filter((c) => match(c.name) || match(c.desc)).map((c) => (
+            <Link key={c.name} to={`/compendium/condition/${encodeURIComponent(c.name)}`} className="card">
+              <div className="stripe" style={{ background: '#e74c3c' }} />
+              <div className="icon">😵</div>
+              <h3 style={{ margin: '0 0 6px' }}>{c.name}</h3>
+              <div className="sub">{c.desc.slice(0, 80)}...</div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {tab === 'deities' && (
+        <div className="grid">
+          {DEITIES.filter((d) => match(d.name) || match(d.desc)).map((d) => (
+            <Link key={d.name} to={`/compendium/deity/${encodeURIComponent(d.name)}`} className="card">
+              <div className="stripe" style={{ background: '#f39c12' }} />
+              <div className="icon">☀️</div>
+              <h3 style={{ margin: '0 0 6px' }}>{d.name}</h3>
+              <div className="sub">{d.desc.slice(0, 80)}...</div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {tab === 'mechanics' && (
+        <div className="grid">
+          {MECHANICS.filter((m) => match(m.name) || match(m.desc)).map((m) => (
+            <Link key={m.name} to={`/compendium/mechanic/${encodeURIComponent(m.name)}`} className="card">
+              <div className="stripe" style={{ background: '#34495e' }} />
+              <div className="icon">⚙️</div>
+              <h3 style={{ margin: '0 0 6px' }}>{m.name}</h3>
+              <div className="sub">{m.desc.slice(0, 80)}...</div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {tab === 'hazards' && (
+        <div className="grid">
+          {HAZARDS.filter((h) => match(h.name) || match(h.desc)).map((h) => (
+            <Link key={h.name} to={`/compendium/hazard/${encodeURIComponent(h.name)}`} className="card">
+              <div className="stripe" style={{ background: '#c0392b' }} />
+              <div className="icon">💀</div>
+              <h3 style={{ margin: '0 0 6px' }}>{h.name}</h3>
+              <div className="sub">{h.desc.slice(0, 80)}...</div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

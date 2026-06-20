@@ -15,13 +15,13 @@ npm run build    # production build to dist/
 npm run preview  # serve the production build
 ```
 
-There is **no test or lint script** — "build passes" (`npm run build`) is the verification bar. The repo is not a git repository.
+There is **no test or lint script** — "build passes" (`npm run build`) is the verification bar.
 
 ## Source-of-truth boundaries
 
 - `CharacterSheet_Creator/` is a **separate, read-only reference project** (a different prior character-sheet app, Tailwind-based). Do not edit it or import from it; our app deliberately re-implements its sheet in our own plain-CSS theme.
 - The root `*.pdf` files are the official 5e rulebooks used only as **design reference**. They are large OCR'd scans — do not parse them in code or at runtime.
-- **Content licensing matters here.** Only **SRD (open-license)** game content is encoded. Spell/monster/class descriptions are authored as *original concise summaries* of mechanics, never verbatim copies of copyrighted book text (Xanathar's/Tasha's prose, etc.). Mechanical facts (names, levels, schools, ranges, AC/HP, etc.) are fine. Preserve this distinction when adding data.
+- **Content must be verbatim from the source PDFs.** All descriptions — class features, subclass descs, race traits, background features, spell descs, monster traits/actions — must be copied word-for-word from the official 5e PDFs in the repo root (`[D&D5e] Player_s Handbook.pdf`, `[D&D5e] Xanathar_s Guide to Everything.pdf`, `Tashas_Cauldron_of_Everything.pdf`, etc.). Do not paraphrase or summarize. Mechanical facts (names, levels, schools, ranges, AC/HP, source tags) must also be accurate to the books.
 
 ## Architecture
 

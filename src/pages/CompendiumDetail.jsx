@@ -6,6 +6,12 @@ import { getBackground } from '../data/backgrounds.js'
 import { getSpell, spellLevelName } from '../data/spells.js'
 import { getMonster, crLabel, abilityModStr } from '../data/monsters.js'
 import { ABILITIES, SKILLS } from '../data/abilities.js'
+import { FEATS } from '../data/feats.js'
+import { ITEMS } from '../data/items.js'
+import { CONDITIONS } from '../data/conditions.js'
+import { DEITIES } from '../data/deities.js'
+import { MECHANICS } from '../data/mechanics.js'
+import { HAZARDS } from '../data/hazards.js'
 
 const skillName = (k) => SKILLS.find((s) => s.key === k)?.name || k
 const abName = (k) => ABILITIES.find((a) => a.key === k)?.name || k
@@ -260,6 +266,126 @@ export default function CompendiumDetail() {
           {m.actions.map((a, i) => (
             <p key={i} style={{ whiteSpace: 'pre-wrap' }}><b><i>{a.name}.</i></b> {a.desc}</p>
           ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'feat') {
+    const feat = FEATS.find((f) => f.name === key)
+    if (!feat) return <NotFound />
+    return (
+      <div className="container">
+        <Link to="/compendium?tab=feats" className="back-link">← Back to Compendium</Link>
+        <div className="detail-head">
+          <div className="big-icon">🏃</div>
+          <div>
+            <h1>{feat.name}</h1>
+            <div className="tag">Feat</div>
+          </div>
+        </div>
+        <div className="panel">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{feat.desc}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'item') {
+    const item = ITEMS.find((i) => i.name === key)
+    if (!item) return <NotFound />
+    return (
+      <div className="container">
+        <Link to="/compendium?tab=items" className="back-link">← Back to Compendium</Link>
+        <div className="detail-head">
+          <div className="big-icon">⚔️</div>
+          <div>
+            <h1>{item.name}</h1>
+            <div className="tag">Equipment / Magic Item</div>
+          </div>
+        </div>
+        <div className="panel">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{item.desc}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'condition') {
+    const cond = CONDITIONS.find((c) => c.name === key)
+    if (!cond) return <NotFound />
+    return (
+      <div className="container">
+        <Link to="/compendium?tab=conditions" className="back-link">← Back to Compendium</Link>
+        <div className="detail-head">
+          <div className="big-icon">😵</div>
+          <div>
+            <h1>{cond.name}</h1>
+            <div className="tag">Condition</div>
+          </div>
+        </div>
+        <div className="panel">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{cond.desc}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'deity') {
+    const deity = DEITIES.find((d) => d.name === key)
+    if (!deity) return <NotFound />
+    return (
+      <div className="container">
+        <Link to="/compendium?tab=deities" className="back-link">← Back to Compendium</Link>
+        <div className="detail-head">
+          <div className="big-icon">☀️</div>
+          <div>
+            <h1>{deity.name}</h1>
+            <div className="tag">Deity</div>
+          </div>
+        </div>
+        <div className="panel">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{deity.desc}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'mechanic') {
+    const mech = MECHANICS.find((m) => m.name === key)
+    if (!mech) return <NotFound />
+    return (
+      <div className="container">
+        <Link to="/compendium?tab=mechanics" className="back-link">← Back to Compendium</Link>
+        <div className="detail-head">
+          <div className="big-icon">⚙️</div>
+          <div>
+            <h1>{mech.name}</h1>
+            <div className="tag">Rules & Mechanics</div>
+          </div>
+        </div>
+        <div className="panel">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{mech.desc}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (type === 'hazard') {
+    const haz = HAZARDS.find((h) => h.name === key)
+    if (!haz) return <NotFound />
+    return (
+      <div className="container">
+        <Link to="/compendium?tab=hazards" className="back-link">← Back to Compendium</Link>
+        <div className="detail-head">
+          <div className="big-icon">💀</div>
+          <div>
+            <h1>{haz.name}</h1>
+            <div className="tag">Hazards & Traps</div>
+          </div>
+        </div>
+        <div className="panel">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{haz.desc}</p>
         </div>
       </div>
     )
