@@ -79,6 +79,20 @@ button { font-family: inherit; cursor: pointer; }
 .card .sub { color: var(--muted); font-size: 13px; }
 .card .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
 
+/* character roster cards */
+.char-card { cursor: pointer; display: flex; flex-direction: column; }
+.char-card:focus-visible { outline: none; border-color: var(--gold); box-shadow: var(--shadow); }
+.char-stats { display: flex; gap: 14px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.char-stats b { color: var(--ink); font-family: Georgia, serif; font-size: 15px; margin-right: 3px; }
+.char-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.char-card-new {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; border-style: dashed; color: var(--muted); min-height: 150px;
+}
+.char-card-new:hover { color: var(--gold); }
+.char-card-new .icon { font-size: 40px; color: var(--gold-dim); }
+.char-card-new h3 { margin: 8px 0 2px; }
+
 .section-title { display: flex; align-items: center; gap: 12px; margin: 36px 0 16px; }
 .section-title h2 { margin: 0; color: var(--gold); }
 .section-title .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--gold-dim), transparent); }
@@ -235,7 +249,7 @@ button { font-family: inherit; cursor: pointer; }
 .cs-name-label, .cs-meta-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
 .cs-meta { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 14px; background: #f0ece2; border: 1px solid #ccc; border-radius: 6px 22px 6px 6px; padding: 12px; }
 .cs-meta-field { border-bottom: 1px solid #bbb; padding-bottom: 2px; min-width: 0; }
-.cs-meta-val { font-family: Georgia, serif; font-weight: 700; font-size: 15px; outline: none; min-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-meta-val { font-family: Georgia, serif; font-weight: 700; font-size: 15px; outline: none; min-height: 20px; line-height: 1.25; overflow-wrap: anywhere; }
 .cs-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 .cs-box { border: 2px solid #ccc; border-radius: 10px; background: #f7f5ef; padding: 10px; }
 .cs-box-label { text-align: center; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
