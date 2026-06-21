@@ -28,7 +28,7 @@ export default function CharacterBuilder() {
   const set = (patch) => setChar((c) => ({ ...c, ...patch }))
 
   const save = () => {
-    const saved = { ...char, name: char.name.trim() || 'Unnamed Hero' }
+    const saved = { ...char, name: (char.name || '').trim() || 'Unnamed Hero' }
     upsertCharacter(saved)
     nav(`/sheet/${saved.id}`)
   }
@@ -120,7 +120,7 @@ function Basics({ char, set, cls, race, bg }) {
           <select value={char.classKey} onChange={(e) => onClassChange(e.target.value)}>
             {CLASSES.map((c) => <option key={c.key} value={c.key}>{c.icon} {c.name}</option>)}
           </select>
-          <div className="hint">d{cls?.hitDie} Hit Die · Saves {cls?.saves.map((s) => s.toUpperCase()).join(', ')} <Link className="gold" to={`/compendium/class/${char.classKey}`}>Details →</Link></div>
+          <div className="hint">d{cls?.hitDie} Hit Die · Saves {cls?.saves?.map((s) => s.toUpperCase()).join(', ')} <Link className="gold" to={`/compendium/class/${char.classKey}`}>Details →</Link></div>
         </div>
         {cls?.subclasses?.length > 0 && (
           <div className="field">
@@ -142,7 +142,7 @@ function Basics({ char, set, cls, race, bg }) {
           <select value={char.backgroundKey} onChange={(e) => set({ backgroundKey: e.target.value })}>
             {BACKGROUNDS.map((b) => <option key={b.key} value={b.key}>{b.icon} {b.name}</option>)}
           </select>
-          <div className="hint">Grants {bg?.skills.map(skillName).join(' & ')}. <Link className="gold" to={`/compendium/background/${char.backgroundKey}`}>Details →</Link></div>
+          <div className="hint">Grants {bg?.skills?.map(skillName).join(' & ')}. <Link className="gold" to={`/compendium/background/${char.backgroundKey}`}>Details →</Link></div>
         </div>
       </div>
       {subUnlocked && cls?.subclasses?.length > 0 && !char.subclassKey && (

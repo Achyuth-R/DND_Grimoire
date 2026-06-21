@@ -25,17 +25,17 @@ export default function CharacterSheet() {
     upsertCharacter(next)
   }
   const updateAttack = (i, field, value) => {
-    const attacks = char.attacks.map((a, idx) => (idx === i ? { ...a, [field]: value } : a))
+    const attacks = (char.attacks || []).map((a, idx) => (idx === i ? { ...a, [field]: value } : a))
     update('attacks', attacks)
   }
-  const addAttack = () => update('attacks', [...char.attacks, { name: '', bonus: '', damage: '' }])
+  const addAttack = () => update('attacks', [...(char.attacks || []), { name: '', bonus: '', damage: '' }])
 
   const d = derive(char)
   const traits = racialTraits(char)
   const features = classFeaturesUpTo(char)
   const defaults = defaultFeatureText(char)
-  const subclass = d.cls?.subclasses.find((s) => s.key === char.subclassKey)
-  const subrace = d.race?.subraces.find((s) => s.key === char.subraceKey)
+  const subclass = d.cls?.subclasses?.find((s) => s.key === char.subclassKey)
+  const subrace = d.race?.subraces?.find((s) => s.key === char.subraceKey)
   const hpCurrent = char.hpCurrent ?? d.maxHp
   const ab3 = (k) => k.slice(0, 3).toUpperCase()
 
@@ -114,10 +114,10 @@ export default function CharacterSheet() {
               <div className="cs-box" style={{ flex: 1 }}>
                 <div className="cs-section-title">Other Proficiencies & Languages</div>
                 <div style={{ fontSize: 11, lineHeight: 1.5 }}>
-                  <p style={{ margin: '0 0 4px' }}><b>Armor:</b> {d.cls?.armor.length ? d.cls.armor.join(', ') : 'None'}</p>
-                  <p style={{ margin: '0 0 4px' }}><b>Weapons:</b> {d.cls?.weapons.join(', ')}</p>
-                  <p style={{ margin: '0 0 4px' }}><b>Tools:</b> {d.cls?.tools.length ? d.cls.tools.join(', ') : '—'}</p>
-                  <p style={{ margin: 0 }}><b>Languages:</b> {d.race?.languages.join(', ')}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Armor:</b> {d.cls?.armor?.length ? d.cls.armor.join(', ') : 'None'}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Weapons:</b> {d.cls?.weapons?.join(', ')}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Tools:</b> {d.cls?.tools?.length ? d.cls.tools.join(', ') : '—'}</p>
+                  <p style={{ margin: 0 }}><b>Languages:</b> {d.race?.languages?.join(', ')}</p>
                 </div>
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function CharacterSheet() {
                 <table className="cs-attacks">
                   <thead><tr><th>Name</th><th style={{ width: 60, textAlign: 'center' }}>Atk</th><th>Damage/Type</th></tr></thead>
                   <tbody>
-                    {char.attacks.map((atk, i) => (
+                    {(char.attacks || []).map((atk, i) => (
                       <tr key={i}>
                         <td><input value={atk.name} onChange={(e) => updateAttack(i, 'name', e.target.value)} /></td>
                         <td><input style={{ textAlign: 'center' }} value={atk.bonus} onChange={(e) => updateAttack(i, 'bonus', e.target.value)} /></td>
@@ -190,8 +190,8 @@ export default function CharacterSheet() {
                   <ul className="cs-feat-list">
                     {traits.map((t, i) => <li key={i}><b>{t.name}.</b> {t.desc}</li>)}
                   </ul>
-                  <div className="cs-feat-h">Background Feature: {d.bg?.feature.name}</div>
-                  <p style={{ fontSize: 11, fontStyle: 'italic', margin: '0 0 8px', paddingLeft: 8, borderLeft: '2px solid #ccc' }}>{d.bg?.feature.desc}</p>
+                  <div className="cs-feat-h">Background Feature: {d.bg?.feature?.name}</div>
+                  <p style={{ fontSize: 11, fontStyle: 'italic', margin: '0 0 8px', paddingLeft: 8, borderLeft: '2px solid #ccc' }}>{d.bg?.feature?.desc}</p>
                   <div className="cs-feat-h">Class Features {subclass ? `& ${subclass.name}` : ''}</div>
                   <textarea
                     className="cs-ta" style={{ minHeight: 140, border: '1px dashed #ccc', padding: 4, borderRadius: 4 }}

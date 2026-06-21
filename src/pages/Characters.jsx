@@ -8,11 +8,9 @@ export default function Characters() {
   const [list, setList] = useState(loadCharacters())
   const nav = useNavigate()
 
-  const remove = (id, name) => {
-    if (confirm(`Delete ${name || 'this character'}? This cannot be undone.`)) {
-      deleteCharacter(id)
-      setList(loadCharacters())
-    }
+  const remove = (id) => {
+    deleteCharacter(id)
+    setList(loadCharacters())
   }
 
   return (

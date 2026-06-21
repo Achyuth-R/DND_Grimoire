@@ -35,7 +35,7 @@ export function derive(char) {
 
   const saves = {}
   for (const a of ABILITIES) {
-    const proficient = cls?.saves.includes(a.key)
+    const proficient = cls?.saves?.includes(a.key)
     saves[a.key] = { value: mods[a.key] + (proficient ? pb : 0), proficient }
   }
 
@@ -93,10 +93,10 @@ export function defaultFeatureText(char) {
 export function classFeaturesUpTo(char) {
   const cls = getClass(char.classKey)
   if (!cls) return []
-  const feats = cls.features.filter((f) => f.level <= char.level)
+  const feats = cls.features?.filter((f) => f.level <= char.level) || []
   if (char.subclassKey) {
-    const sub = cls.subclasses.find((s) => s.key === char.subclassKey)
-    if (sub) sub.features.filter((f) => f.level <= char.level).forEach((f) => feats.push({ ...f, sub: sub.name }))
+    const sub = cls.subclasses?.find((s) => s.key === char.subclassKey)
+    if (sub) sub.features?.filter((f) => f.level <= char.level).forEach((f) => feats.push({ ...f, sub: sub.name }))
   }
   return feats.sort((a, b) => a.level - b.level)
 }
