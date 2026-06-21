@@ -54,6 +54,9 @@ export default function Compendium() {
   const [monSize, setMonSize] = useState('all')
   const [monSource, setMonSource] = useState('all')
 
+  const [featAsi, setFeatAsi] = useState('all')
+  const [featPrereq, setFeatPrereq] = useState('all')
+
   const setTab = (t) => setParams({ tab: t })
   const match = (s) => (s || '').toLowerCase().includes(q.toLowerCase())
 
@@ -214,21 +217,61 @@ export default function Compendium() {
         )
       })()}
 
-      {tab === 'feats' && (
-        <>
-          <div className="hint" style={{ marginBottom: 14 }}>{FEATS.length} feats from PHB, Xanathar's, and Tasha's.</div>
-          <div className="grid">
-            {FEATS.filter((f) => match(f.name) || match(f.desc)).map((f) => (
-              <Link key={f.name} to={`/compendium/feat/${encodeURIComponent(f.name)}`} className="card">
-                <div className="stripe" style={{ background: '#e67e22' }} />
-                <div className="icon">🏃</div>
-                <h3 style={{ margin: '0 0 6px' }}>{f.name}</h3>
-                <div className="sub">{f.desc.slice(0, 80)}...</div>
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
+      {tab === 'feats' && (() => {
+        const list = FEATS
+          .filter((f) => match(f.name) || match(f.desc))
+          .filter((f) => {
+            if (featPrereq === 'yes') return f.desc.includes('Prerequisite:');
+            if (featPrereq === 'no') return !f.desc.includes('Prerequisite:');
+            return true;
+          })
+          .filter((f) => {
+            if (featAsi === 'all') return true;
+            const d = f.desc;
+            const hasAsi = d.match(/Increase your.*(Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma)/) || d.includes('ability score of your choice');
+            if (featAsi === 'none') return !hasAsi;
+            if (d.includes('ability score of your choice by 1') || d.includes('ability score of your choice')) return true;
+            if (featAsi === 'str' && d.match(/Increase your.*Strength/)) return true;
+            if (featAsi === 'dex' && d.match(/Increase your.*Dexterity/)) return true;
+            if (featAsi === 'con' && d.match(/Increase your.*Constitution/)) return true;
+            if (featAsi === 'int' && d.match(/Increase your.*Intelligence/)) return true;
+            if (featAsi === 'wis' && d.match(/Increase your.*Wisdom/)) return true;
+            if (featAsi === 'cha' && d.match(/Increase your.*Charisma/)) return true;
+            return false;
+          });
+        return (
+          <>
+            <div className="filter-row">
+              <select className="filter-sel" value={featAsi} onChange={(e) => setFeatAsi(e.target.value)}>
+                <option value="all">Any ASI</option>
+                <option value="str">Strength</option>
+                <option value="dex">Dexterity</option>
+                <option value="con">Constitution</option>
+                <option value="int">Intelligence</option>
+                <option value="wis">Wisdom</option>
+                <option value="cha">Charisma</option>
+                <option value="none">No ASI</option>
+              </select>
+              <select className="filter-sel" value={featPrereq} onChange={(e) => setFeatPrereq(e.target.value)}>
+                <option value="all">Any Prerequisite</option>
+                <option value="yes">Has Prerequisite</option>
+                <option value="no">No Prerequisite</option>
+              </select>
+            </div>
+            <div className="hint" style={{ marginBottom: 14 }}>{list.length} feats.</div>
+            <div className="grid">
+              {list.map((f) => (
+                <Link key={f.name} to={`/compendium/feat/${encodeURIComponent(f.name)}`} className="card">
+                  <div className="stripe" style={{ background: '#e67e22' }} />
+                  <div className="icon">🏃</div>
+                  <h3 style={{ margin: '0 0 6px' }}>{f.name}</h3>
+                  <div className="sub">{f.desc.slice(0, 80)}...</div>
+                </Link>
+              ))}
+            </div>
+          </>
+        )
+      })()}
 
       {tab === 'items' && (
         <>
