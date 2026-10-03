@@ -43,11 +43,12 @@ export function MultiPick({ options, value = [], max, onChange, columns }) {
 }
 
 // Skill picker: `from` is 'any' or a list; skills granted elsewhere are shown locked.
-export function SkillPicker({ from, value, max, taken, onChange }) {
+// `suggested` (optional) tags e.g. the class's own skill list while still allowing any skill.
+export function SkillPicker({ from, value, max, taken, onChange, suggested }) {
   const keys = from === 'any' ? ALL_SKILLS : from || []
   const options = keys.map((k) => ({
     key: k, label: skillName(k),
-    sub: SKILLS.find((s) => s.key === k)?.ability.toUpperCase() + (taken?.has(k) && !value.includes(k) ? ' · have' : ''),
+    sub: SKILLS.find((s) => s.key === k)?.ability.toUpperCase() + (suggested?.includes(k) ? ' · class' : '') + (taken?.has(k) && !value.includes(k) ? ' · have' : ''),
     disabled: taken?.has(k) && !value.includes(k),
   }))
   return (
@@ -125,9 +126,10 @@ export function SpellChooser({ pool, value, max, onChange, label = 'spells', alw
 const SPELL_LIST_ABILITY = { bard: 'cha', cleric: 'wis', druid: 'wis', sorcerer: 'cha', warlock: 'cha', wizard: 'int', artificer: 'int' }
 
 // Pick a feat plus any sub-choices it requires. value = { key, ability, skills, expertise, spellList, spells, spellAbility, tool }.
-export function FeatPicker({ char, d, value = {}, onChange, takenSkills }) {
+// ignorePrereq: DM-granted feats may skip prerequisites.
+export function FeatPicker({ char, d, value = {}, onChange, takenSkills, ignorePrereq = false }) {
   const otherFeats = featsTaken(char).map((f) => f.feat.key).filter((k) => k !== value.key)
-  const options = FEATS.filter((f) => !otherFeats.includes(f.key) && meetsPrereq(f, char, d))
+  const options = FEATS.filter((f) => (f.repeatable || !otherFeats.includes(f.key)) && (ignorePrereq || meetsPrereq(f, char, d)))
   const feat = FEATS.find((f) => f.key === value.key)
   const set = (patch) => onChange({ ...value, ...patch })
   const profSkills = d.skills.filter((s) => s.proficient).map((s) => s.key)

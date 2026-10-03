@@ -222,7 +222,19 @@ export const RACES = [
       { name: 'Infernal Legacy', desc: 'You know the thaumaturgy cantrip. When you reach 3rd level, you can cast the hellish rebuke spell as a 2nd-level spell once with this trait and regain the ability to do so when you finish a long rest. When you reach 5th level, you can cast the darkness spell once with this trait and regain the ability to do so when you finish a long rest. Charisma is your spellcasting ability for these spells.' },
     ],
     languages: ['Common', 'Infernal'],
-    subraces: [],
+    subraces: [
+      { key: 'standard', name: 'Tiefling (Asmodeus)', asi: {}, traits: [] },
+      // Mordenkainen's Tome of Foes, "Tiefling Subraces". Replaces the base ASI and Infernal Legacy.
+      {
+        key: 'levistus', name: 'Levistus Tiefling', source: 'MTF', asi: { cha: 2, con: 1 }, replacesParentAsi: true,
+        replacesTraits: ['Infernal Legacy'],
+        spells: { ability: 'cha', list: [{ level: 1, key: 'ray-of-frost' }, { level: 3, key: 'armor-of-agathys' }, { level: 5, key: 'darkness' }] },
+        traits: [
+          { name: 'Ability Score Increase', desc: 'Your Charisma score increases by 2, and your Constitution score increases by 1.' },
+          { name: 'Legacy of Stygia', desc: 'You know the ray of frost cantrip. When you reach 3rd level, you can cast the armor of Agathys spell as a 2nd-level spell once with this trait, and you regain the ability to cast it this way when you finish a long rest. When you reach 5th level, you can cast the darkness spell once with this trait, and you regain the ability to cast it this way when you finish a long rest. Charisma is your spellcasting ability for these spells.' },
+        ],
+      },
+    ],
   },
   {
     key: 'aasimar',

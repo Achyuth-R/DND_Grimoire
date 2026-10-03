@@ -68,14 +68,14 @@ export default function ClassStep({ char, set, d }) {
         {d.spell && <span className="pill"><b>Spellcasting:</b> {d.spell.ability.toUpperCase()} · DC {d.spell.dc}</span>}
       </div>
 
-      <Section title="Class Skills" hint={`Choose ${cls.skillsChoose} from the ${cls.name} list. Skills you already have from your race or background are locked.`}>
-        <SkillPicker from={cls.skillsFrom} value={char.skills || []} max={cls.skillsChoose} taken={skillsTakenExcept(char, 'cls')} onChange={(skills) => set({ skills })} />
+      <Section title="Class Skills" hint={`Choose ${cls.skillsChoose} skills. Skills tagged “class” are on the ${cls.name} list, but any skill is allowed. Skills you already have are locked.`}>
+        <SkillPicker from="any" suggested={cls.skillsFrom === 'any' ? null : cls.skillsFrom} value={char.skills || []} max={cls.skillsChoose} taken={skillsTakenExcept(char, 'cls')} onChange={(skills) => set({ skills })} />
       </Section>
 
       {sub?.skillChoice && (
         <Section title={`${sub.name} Skills`} hint={sub.skillChoice.expertise ? 'You gain proficiency and double your proficiency bonus with these.' : undefined}>
           <SkillPicker
-            from={sub.skillChoice.from} value={char.subclassChoices?.skills || []} max={sub.skillChoice.count}
+            from="any" suggested={sub.skillChoice.from === 'any' ? null : sub.skillChoice.from} value={char.subclassChoices?.skills || []} max={sub.skillChoice.count}
             taken={skillsTakenExcept(char, 'sub')}
             onChange={(skills) => set({ subclassChoices: { ...char.subclassChoices, skills } })}
           />

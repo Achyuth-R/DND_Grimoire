@@ -111,8 +111,9 @@ export function normalize(input) {
   const used = new Set(skillSources(c).fixed)
   if (rc.skills) rc.skills = take(dedupe(rc.skills.filter((k) => fromList(ri.skillChoice.from).includes(k)), used), ri.skillChoice.count)
   if (rc.variableSkills) rc.variableSkills = take(dedupe(rc.variableSkills, used), 1)
-  c.skills = take(dedupe((c.skills || []).filter((k) => fromList(cls?.skillsFrom).includes(k)), used), cls?.skillsChoose || 0)
-  if (sub?.skillChoice) c.subclassChoices.skills = take(dedupe((c.subclassChoices.skills || []).filter((k) => fromList(sub.skillChoice.from).includes(k)), used), sub.skillChoice.count)
+  // Class picks may be any skill (the class list is only a suggestion in the picker).
+  c.skills = take(dedupe(c.skills || [], used), cls?.skillsChoose || 0)
+  if (sub?.skillChoice) c.subclassChoices.skills = take(dedupe(c.subclassChoices.skills || [], used), sub.skillChoice.count)
   else delete c.subclassChoices.skills
 
   // Level-ups: only earned ASI levels, and feat sub-choices deduped against other skills
@@ -121,6 +122,7 @@ export function normalize(input) {
   const fixFeat = (f) => (f?.skills ? { ...f, skills: dedupe(f.skills, used) } : f)
   if (rc.feat) rc.feat = fixFeat(rc.feat)
   for (const l of Object.keys(c.levelUps)) if (c.levelUps[l]?.feat) c.levelUps[l] = { ...c.levelUps[l], feat: fixFeat(c.levelUps[l].feat) }
+  c.bonusFeats = (c.bonusFeats || []).map(fixFeat)
 
   // Expertise: only as many as the class grants, only from proficient skills (or the class's expertise tools)
   const d0 = derive(c)
@@ -257,6 +259,10 @@ export function validateStep(step, char) {
         errs.push(...featChoiceErrors(t?.feat, lu.feat || {}, `Level ${lvl}`))
       }
     }
+    ;(char.bonusFeats || []).forEach((b, i) => {
+      const t = d.feats.find((f) => f.source === `Bonus feat ${i + 1}`)
+      errs.push(...featChoiceErrors(t?.feat, b || {}, `Bonus feat ${i + 1}`))
+    })
     // Any increase that would push a score past 20 is wasted; flag it.
     const raw = {}
     for (const k of Object.keys(char.scores || {})) raw[k] = (char.scores[k] || 0) + (race[k] || 0)

@@ -76,6 +76,8 @@ export function newCharacter() {
     infusions: [],
     languages: [],
     levelUps: {},
+    bonusFeats: [], // DM-granted feats at any level
+    customProfs: {}, // player-chosen extra proficiencies (Review step)
     equipment: { classKey: 'fighter', choices: {}, picks: {} },
     equippedArmor: '',
     shield: false,

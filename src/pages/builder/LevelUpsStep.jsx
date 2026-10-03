@@ -32,21 +32,16 @@ export default function LevelUpsStep({ char, set, d }) {
   const cls = getClass(char.classKey)
   const levels = earnedAsiLevels(char)
   const setLu = (lvl, patch) => set({ levelUps: { ...char.levelUps, [lvl]: { ...(char.levelUps?.[lvl] || {}), ...patch } } })
-
-  if (!levels.length) {
-    return (
-      <>
-        <h3 style={{ marginTop: 0 }}>Level-ups</h3>
-        <p className="hint">No Ability Score Improvements yet. The {cls?.name} gains its first at level {cls?.asiLevels?.[0]}.</p>
-      </>
-    )
-  }
+  const bonus = char.bonusFeats || []
+  const setBonus = (i, feat) => set({ bonusFeats: bonus.map((b, j) => (j === i ? feat : b)) })
 
   return (
     <>
       <h3 style={{ marginTop: 0 }}>Level-ups</h3>
       <div className="hint" style={{ marginBottom: 12 }}>
-        At each of these levels, increase one ability score by 2 or two scores by 1 (max 20), or take a feat instead.
+        {levels.length
+          ? 'At each of these levels, increase one ability score by 2 or two scores by 1 (max 20), or take a feat instead.'
+          : `No Ability Score Improvements yet. The ${cls?.name} gains its first at level ${cls?.asiLevels?.[0]}.`}
       </div>
       {levels.map((lvl) => {
         const lu = char.levelUps?.[lvl] || {}
@@ -66,6 +61,19 @@ export default function LevelUpsStep({ char, set, d }) {
           </Section>
         )
       })}
+
+      <Section title="Bonus Feats (DM-granted)" hint="Extra feats your DM has awarded, at any level. Prerequisites are not enforced here; Magic Initiate can be taken more than once.">
+        {bonus.map((b, i) => (
+          <div key={i} className="bonus-feat">
+            <div className="row-between" style={{ marginBottom: 6 }}>
+              <b className="gold">Bonus feat {i + 1}</b>
+              <button className="btn sm danger" onClick={() => set({ bonusFeats: bonus.filter((_, j) => j !== i) })}>Remove</button>
+            </div>
+            <FeatPicker char={char} d={d} value={b} ignorePrereq takenSkills={skillsTakenExcept(char, 'feat')} onChange={(feat) => setBonus(i, feat)} />
+          </div>
+        ))}
+        <button className="btn sm" onClick={() => set({ bonusFeats: [...bonus, {}] })}>+ Add bonus feat</button>
+      </Section>
     </>
   )
 }

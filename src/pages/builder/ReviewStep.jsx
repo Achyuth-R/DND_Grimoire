@@ -1,6 +1,47 @@
-import { ABILITIES, fmtMod } from '../../data/abilities.js'
+import { ABILITIES, SKILLS, fmtMod } from '../../data/abilities.js'
 import { getSpell } from '../../data/spells.js'
-import { Section, skillName } from './shared.jsx'
+import { Section, MultiPick, skillName } from './shared.jsx'
+
+// Free-form extra proficiencies (house rules / DM grants). Stored on char.customProfs.
+function CustomProfs({ char, set, d }) {
+  const cp = char.customProfs || {}
+  const setCp = (patch) => set({ customProfs: { ...cp, ...patch } })
+  const granted = new Set(d.skills.filter((s) => s.proficient && !(cp.skills || []).includes(s.key)).map((s) => s.key))
+  return (
+    <>
+      <div className="field">
+        <label>Extra skill proficiencies</label>
+        <MultiPick
+          options={SKILLS.map((s) => ({ key: s.key, label: s.name, locked: granted.has(s.key) }))}
+          value={cp.skills || []} max={SKILLS.length} onChange={(skills) => setCp({ skills })}
+        />
+      </div>
+      <div className="field">
+        <label>Extra expertise (double proficiency)</label>
+        <MultiPick
+          options={d.skills.filter((s) => s.proficient).map((s) => ({ key: s.key, label: s.name, locked: d.expertise.has(s.key) && !(cp.expertise || []).includes(s.key) }))}
+          value={cp.expertise || []} max={SKILLS.length} onChange={(expertise) => setCp({ expertise })}
+        />
+      </div>
+      <div className="field">
+        <label>Extra saving throw proficiencies</label>
+        <MultiPick
+          columns={6}
+          options={ABILITIES.map((a) => ({ key: a.key, label: a.key.toUpperCase(), locked: d.saves[a.key].proficient && !(cp.saves || []).includes(a.key) }))}
+          value={cp.saves || []} max={6} onChange={(saves) => setCp({ saves })}
+        />
+      </div>
+      <div className="builder-grid">
+        {[['armor', 'Armor', 'e.g. Heavy armor'], ['weapons', 'Weapons', 'e.g. Martial weapons, Longbow'], ['tools', 'Tools', "e.g. Thieves' tools, Lute"], ['languages', 'Languages', 'e.g. Sylvan, Thieves’ Cant']].map(([k, lbl, ph]) => (
+          <div className="field" key={k}>
+            <label>Extra {lbl.toLowerCase()} (comma-separated)</label>
+            <input value={cp[k] || ''} placeholder={ph} onChange={(e) => setCp({ [k]: e.target.value })} />
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
 
 const ALIGNMENTS = ['Lawful Good', 'Neutral Good', 'Chaotic Good', 'Lawful Neutral', 'True Neutral', 'Chaotic Neutral', 'Lawful Evil', 'Neutral Evil', 'Chaotic Evil']
 
@@ -65,6 +106,10 @@ export default function ReviewStep({ char, set, d, errors, resetText, setResetTe
           {d.spell && <><br /><b className="gold">Spells:</b> {(char.spells || []).map((k) => getSpell(k)?.name).join(', ') || '—'}</>}
           {d.expertise.size > 0 && <><br /><b className="gold">Expertise:</b> {[...d.expertise].map(skillName).join(', ')}</>}
         </p>
+      </Section>
+
+      <Section title="Custom Proficiencies" hint="Add anything your DM allows beyond your race, class, and background. These are not restricted.">
+        <CustomProfs char={char} set={set} d={d} />
       </Section>
 
       {showReset && (

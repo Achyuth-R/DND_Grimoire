@@ -23,7 +23,7 @@ const RULES = {
   'keen-mind': { asi: { fixed: { int: 1 } } },
   'lightly-armored': { asi: one('str', 'dex'), armor: ['Light armor'] },
   linguist: { asi: { fixed: { int: 1 } }, languageChoice: 3 },
-  'magic-initiate': { spellChoice: { lists: ['bard', 'cleric', 'druid', 'sorcerer', 'warlock', 'wizard'], cantrips: 2, level1: 1 } },
+  'magic-initiate': { repeatable: true, spellChoice: { lists: ['bard', 'cleric', 'druid', 'sorcerer', 'warlock', 'wizard'], cantrips: 2, level1: 1 } },
   'medium-armor-master': { mediumDexCap: 3, prereq: { armor: 'Medium armor' } },
   mobile: { speed: 10 },
   'moderately-armored': { asi: one('str', 'dex'), armor: ['Medium armor', 'Shields'], prereq: { armor: 'Light armor' } },

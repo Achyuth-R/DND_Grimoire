@@ -90,6 +90,11 @@ export function featsTaken(char) {
       if (feat) out.push({ feat, choices: lu.feat, source: `Level ${lvl}` })
     }
   }
+  // Extra feats granted by the DM, at any level.
+  ;(char.bonusFeats || []).forEach((choices, i) => {
+    const feat = choices?.key && getFeat(choices.key)
+    if (feat) out.push({ feat, choices, source: `Bonus feat ${i + 1}` })
+  })
   return out
 }
 
@@ -203,9 +208,13 @@ export function derive(char) {
   const raceSkillPicks = ri?.skillChoice ? (char.raceChoices?.skills || []).slice(0, ri.skillChoice.count) : []
   const variableSkill = ri?.variableTrait && char.raceChoices?.variable === 'skill' ? (char.raceChoices?.variableSkills || []).slice(0, 1) : []
   const featSkills = feats.flatMap(({ feat, choices }) => (feat.skillChoice ? (choices.skills || []).slice(0, feat.skillChoice.count) : []))
+  // Player-chosen extras from the Review step (house rules / DM grants), unrestricted.
+  const custom = char.customProfs || {}
+  // Free-text extras are stored as comma-separated strings.
+  const listOf = (v) => (Array.isArray(v) ? v : (v || '').split(',').map((t) => t.trim()).filter(Boolean))
   const skillProfs = new Set(uniq([
     ...(char.skills || []), ...(bg?.skills || []), ...(ri?.skills || []),
-    ...raceSkillPicks, ...variableSkill, ...subSkills, ...featSkills,
+    ...raceSkillPicks, ...variableSkill, ...subSkills, ...featSkills, ...(custom.skills || []),
   ]))
 
   // Expertise only counts on proficient skills and only as many as the class grants.
@@ -215,19 +224,20 @@ export function derive(char) {
   const toolExpertise = expertisePicks.filter((s) => !SKILLS.some((k) => k.key === s))
   const subExpertise = sub ? [...(sub.expertiseSkills || []), ...(sub.skillChoice?.expertise ? subSkills : [])] : []
   const featExpertise = feats.flatMap(({ feat, choices }) => (feat.expertiseChoice ? (choices.expertise || []).slice(0, feat.expertiseChoice) : []))
-  const expertise = new Set([...classExpertise, ...subExpertise, ...featExpertise].filter((s) => skillProfs.has(s)))
+  const expertise = new Set([...classExpertise, ...subExpertise, ...featExpertise, ...(custom.expertise || [])].filter((s) => skillProfs.has(s)))
 
   const saveProfs = new Set(cls?.saves || [])
   feats.forEach(({ feat, choices }) => { if (feat.saveFromAsi && choices.ability) saveProfs.add(choices.ability) })
+  ;(custom.saves || []).forEach((k) => saveProfs.add(k))
 
   const profs = {
-    armor: uniq([...(cls?.armor || []), ...(ri?.armor || []), ...(sub?.armor || []), ...feats.flatMap(({ feat }) => feat.armor || [])]),
-    weapons: uniq([...(cls?.weapons || []), ...(ri?.weapons || []), ...(sub?.weapons || [])]),
+    armor: uniq([...(cls?.armor || []), ...(ri?.armor || []), ...(sub?.armor || []), ...feats.flatMap(({ feat }) => feat.armor || []), ...listOf(custom.armor)]),
+    weapons: uniq([...(cls?.weapons || []), ...(ri?.weapons || []), ...(sub?.weapons || []), ...listOf(custom.weapons)]),
     tools: uniq([
       ...(cls?.tools || []), ...(bg?.tools || []), ...(ri?.tools || []), ...(sub?.tools || []),
-      char.raceChoices?.tool, ...feats.flatMap(({ feat }) => feat.tools || []),
+      char.raceChoices?.tool, ...feats.flatMap(({ feat }) => feat.tools || []), ...listOf(custom.tools),
     ]),
-    languages: uniq([...(ri?.languages || []), ...(sub?.languages || []), ...(char.languages || [])]),
+    languages: uniq([...(ri?.languages || []), ...(sub?.languages || []), ...(char.languages || []), ...listOf(custom.languages)]),
   }
 
   // Jack of All Trades: half proficiency (rounded down) on non-proficient checks, incl. initiative.
@@ -402,8 +412,9 @@ export function spellOptions(char, d = derive(char)) {
 export function racialTraits(char) {
   const race = getRace(char.raceKey)
   if (!race) return []
-  const out = [...race.traits]
   const sub = getSubrace(char)
+  // Some subraces swap out a base trait (e.g. Levistus' Legacy of Stygia replaces Infernal Legacy).
+  const out = race.traits.filter((t) => !(sub?.replacesTraits || []).includes(t.name))
   if (sub) sub.traits.forEach((t) => out.push(t))
   return out
 }

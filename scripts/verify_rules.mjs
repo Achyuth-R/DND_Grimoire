@@ -122,6 +122,19 @@ eq(dup.skills, ['perception'], 'class pick duplicating background skill is dropp
 const trimmed = normalize(base({ classKey: 'rogue', level: 4, skills: ['stealth', 'acrobatics', 'deception', 'insight'], expertise: ['stealth', 'acrobatics', 'deception', 'insight'], levelUps: { 4: { type: 'asi', asi: { dex: 2 } }, 8: { type: 'asi', asi: { dex: 2 } } } }))
 eq([trimmed.expertise.length, Object.keys(trimmed.levelUps)], [2, ['4']], 'rogue 4 trims expertise and level-ups')
 eq(languageSlots(base({ raceKey: 'half-elf', subraceKey: '', backgroundKey: 'sage' })), 3, 'Half-elf sage language slots')
+// Levistus tiefling: CHA +2 / CON +1 (replaces base), Legacy of Stygia replaces Infernal Legacy.
+const lev = derive(base({ raceKey: 'tiefling', subraceKey: 'levistus', level: 5, scores: sc }))
+eq([lev.scores.cha, lev.scores.con, lev.scores.int, lev.innate.map((s) => s.key)], [12, 11, 10, ['ray-of-frost', 'armor-of-agathys', 'darkness']], 'Levistus tiefling')
+const { racialTraits } = await import('../src/compute.js')
+check(!racialTraits(base({ raceKey: 'tiefling', subraceKey: 'levistus' })).some((t) => t.name === 'Infernal Legacy'), 'Levistus drops Infernal Legacy')
+// DM bonus feats: Magic Initiate twice at level 1.
+const mi = derive(base({ level: 1, bonusFeats: [{ key: 'magic-initiate', spellList: 'wizard', spellAbility: 'int', spells: ['fire-bolt'] }, { key: 'magic-initiate', spellList: 'cleric', spellAbility: 'wis', spells: ['guidance'] }] }))
+eq(mi.feats.length, 2, 'two bonus Magic Initiate feats')
+eq(mi.innate.map((s) => s.key).sort(), ['fire-bolt', 'guidance'], 'bonus feat spells')
+// Off-list class skills are kept; custom proficiencies apply.
+eq(normalize(base({ classKey: 'wizard', skills: ['stealth', 'arcana'] })).skills, ['stealth', 'arcana'], 'off-list class skill kept')
+const cust = derive(base({ customProfs: { skills: ['stealth'], expertise: ['stealth'], saves: ['wis'], tools: "Thieves' tools, Lute", languages: 'Sylvan' } }))
+eq([cust.skills.find((s) => s.key === 'stealth').expert, cust.saves.wis.proficient, cust.profs.tools.includes('Lute'), cust.profs.languages.includes('Sylvan')], [true, true, true, true], 'custom proficiencies')
 console.log(`builder rules checked (${owed} owed choices across defaults)`)
 
 console.log(fails ? `${fails} failures` : 'all checks passed')
