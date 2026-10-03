@@ -13,7 +13,17 @@ const TABLE = 'characters'
 const PENDING_KEY = 'grimoire.pending.v1'
 const PUSH_DELAY = 800
 
-const supabase = URL_ && KEY_ ? createClient(URL_, KEY_) : null
+// A misconfigured URL or key must never take the site down: fall back to local-only.
+function makeClient() {
+  if (!URL_ || !KEY_) return null
+  try {
+    return createClient(URL_.trim(), KEY_.trim())
+  } catch (err) {
+    console.warn('[sync] Supabase is misconfigured; characters stay on this device.', err.message)
+    return null
+  }
+}
+const supabase = makeClient()
 
 // ---------- status ----------
 // 'local' (not configured) | 'syncing' | 'synced' | 'offline' | 'error'
