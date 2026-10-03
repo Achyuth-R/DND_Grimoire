@@ -5,6 +5,9 @@ export const RACES = [
     name: 'Dwarf',
     icon: '⛏️',
     asi: { con: 2 },
+    darkvision: 60,
+    weapons: ['Battleaxe', 'Handaxe', 'Light hammer', 'Warhammer'],
+    toolChoice: { count: 1, from: ["Smith's tools", "Brewer's supplies", "Mason's tools"] },
     speed: 25,
     size: 'Medium',
     age: 'Dwarves mature at the same rate as humans but are considered young until 50; they live about 350 years.',
@@ -18,8 +21,8 @@ export const RACES = [
     ],
     languages: ['Common', 'Dwarvish'],
     subraces: [
-      { key: 'hill', name: 'Hill Dwarf', asi: { wis: 1 }, traits: [{ name: 'Dwarven Toughness', desc: 'Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.' }] },
-      { key: 'mountain', name: 'Mountain Dwarf', asi: { str: 2 }, traits: [{ name: 'Dwarven Armor Training', desc: 'You have proficiency with light and medium armor.' }] },
+      { key: 'hill', name: 'Hill Dwarf', asi: { wis: 1 }, hpPerLevel: 1, traits: [{ name: 'Dwarven Toughness', desc: 'Your hit point maximum increases by 1, and it increases by 1 every time you gain a level.' }] },
+      { key: 'mountain', name: 'Mountain Dwarf', asi: { str: 2 }, armor: ['Light armor', 'Medium armor'], traits: [{ name: 'Dwarven Armor Training', desc: 'You have proficiency with light and medium armor.' }] },
     ],
   },
   {
@@ -27,6 +30,8 @@ export const RACES = [
     name: 'Elf',
     icon: '🏹',
     asi: { dex: 2 },
+    darkvision: 60,
+    skills: ['perception'],
     speed: 30,
     size: 'Medium',
     age: 'Elves reach physical maturity around 25 but the elven understanding of adulthood goes beyond that; they can live to be 750.',
@@ -40,7 +45,9 @@ export const RACES = [
     languages: ['Common', 'Elvish'],
     subraces: [
       { 
-        key: 'high', name: 'High Elf', asi: { int: 1 }, 
+        key: 'high', name: 'High Elf', asi: { int: 1 },
+        weapons: ['Longsword', 'Shortsword', 'Shortbow', 'Longbow'], languageChoice: 1,
+        cantripChoice: { count: 1, list: 'wizard', ability: 'int' }, 
         traits: [
           { name: 'Elf Weapon Training', desc: 'You have proficiency with the longsword, shortsword, shortbow, and longbow.' },
           { name: 'Cantrip', desc: 'You know one cantrip of your choice from the wizard spell list. Intelligence is your spellcasting ability for it.' },
@@ -48,7 +55,8 @@ export const RACES = [
         ] 
       },
       { 
-        key: 'wood', name: 'Wood Elf', asi: { wis: 1 }, 
+        key: 'wood', name: 'Wood Elf', asi: { wis: 1 }, speed: 35,
+        weapons: ['Longsword', 'Shortsword', 'Shortbow', 'Longbow'], 
         traits: [
           { name: 'Elf Weapon Training', desc: 'You have proficiency with the longsword, shortsword, shortbow, and longbow.' },
           { name: 'Fleet of Foot', desc: 'Your base walking speed increases to 35 feet.' },
@@ -56,7 +64,9 @@ export const RACES = [
         ] 
       },
       { 
-        key: 'drow', name: 'Dark Elf (Drow)', asi: { cha: 1 }, 
+        key: 'drow', name: 'Dark Elf (Drow)', asi: { cha: 1 }, darkvision: 120,
+        weapons: ['Rapier', 'Shortsword', 'Hand crossbow'],
+        spells: { ability: 'cha', list: [{ level: 1, key: 'dancing-lights' }, { level: 3, key: 'faerie-fire' }, { level: 5, key: 'darkness' }] }, 
         traits: [
           { name: 'Superior Darkvision', desc: 'Your darkvision has a radius of 120 feet.' },
           { name: 'Sunlight Sensitivity', desc: 'You have disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight when you, the target of your attack, or whatever you are trying to perceive is in direct sunlight.' },
@@ -97,9 +107,12 @@ export const RACES = [
     desc: 'Humans are the most adaptable and ambitious people among the common races. They have widely varying tastes, morals, and customs in the many different lands where they have settled.',
     traits: [],
     languages: ['Common', 'One extra language of your choice'],
+    languageChoice: 1,
     subraces: [
+      { key: 'standard', name: 'Standard Human', asi: {}, traits: [] },
       { 
-        key: 'variant', name: 'Variant Human', asi: { other: 'Two different ability scores of your choice increase by 1.' }, 
+        key: 'variant', name: 'Variant Human', asi: {}, replacesParentAsi: true,
+        asiChoice: { count: 2, amount: 1 }, skillChoice: { count: 1, from: 'any' }, featChoice: 1, 
         traits: [
           { name: 'Skills', desc: 'You gain proficiency in one skill of your choice.' },
           { name: 'Feat', desc: 'You gain one feat of your choice.' }
@@ -112,6 +125,7 @@ export const RACES = [
     name: 'Dragonborn',
     icon: '🐲',
     asi: { str: 2, cha: 1 },
+    ancestryChoice: true,
     speed: 30,
     size: 'Medium',
     age: 'Young dragonborn grow quickly. They walk hours after hatching, attain the size and development of a 10-year-old human child by the age of 3, and reach adulthood by 15. They live to be around 80.',
@@ -129,6 +143,7 @@ export const RACES = [
     name: 'Gnome',
     icon: '⚙️',
     asi: { int: 2 },
+    darkvision: 60,
     speed: 25,
     size: 'Small',
     age: 'Gnomes mature at the same rate humans do, and most are expected to settle down into an adult life by around age 40. They can live 350 to almost 500 years.',
@@ -139,11 +154,11 @@ export const RACES = [
     ],
     languages: ['Common', 'Gnomish'],
     subraces: [
-      { key: 'forest', name: 'Forest Gnome', asi: { dex: 1 }, traits: [
+      { key: 'forest', name: 'Forest Gnome', asi: { dex: 1 }, spells: { ability: 'int', list: [{ level: 1, key: 'minor-illusion' }] }, traits: [
         { name: 'Natural Illusionist', desc: 'You know the minor illusion cantrip. Intelligence is your spellcasting ability for it.' },
         { name: 'Speak with Small Beasts', desc: 'Through sounds and gestures, you can communicate simple ideas with Small or smaller beasts.' }
       ] },
-      { key: 'rock', name: 'Rock Gnome', asi: { con: 1 }, traits: [
+      { key: 'rock', name: 'Rock Gnome', asi: { con: 1 }, tools: ["Tinker's tools"], traits: [
         { name: 'Artificer\'s Lore', desc: 'Whenever you make an Intelligence (History) check related to magic items, alchemical objects, or technological devices, you can add twice your proficiency bonus, instead of any proficiency bonus you normally apply.' },
         { name: 'Tinker', desc: 'You have proficiency with artisan\'s tools (tinker\'s tools). Using those tools, you can spend 1 hour and 10 gp worth of materials to construct a Tiny clockwork device (AC 5, 1 hp). The device ceases to function after 24 hours, or when you use your action to dismantle it.' }
       ] },
@@ -153,7 +168,11 @@ export const RACES = [
     key: 'half-elf',
     name: 'Half-Elf',
     icon: '🤝',
-    asi: { cha: 2, other: 'Two other ability scores of your choice increase by 1' },
+    asi: { cha: 2 },
+    asiChoice: { count: 2, amount: 1, exclude: ['cha'] },
+    skillChoice: { count: 2, from: 'any' },
+    languageChoice: 1,
+    darkvision: 60,
     speed: 30,
     size: 'Medium',
     age: 'Half-elves mature at the same rate humans do and reach adulthood around the age of 20. They live much longer than humans, however, often exceeding 180 years.',
@@ -171,6 +190,8 @@ export const RACES = [
     name: 'Half-Orc',
     icon: '🪓',
     asi: { str: 2, con: 1 },
+    darkvision: 60,
+    skills: ['intimidation'],
     speed: 30,
     size: 'Medium',
     age: 'Half-orcs mature a little faster than humans, reaching adulthood around age 14. They age noticeably faster and rarely live longer than 75 years.',
@@ -189,6 +210,8 @@ export const RACES = [
     name: 'Tiefling',
     icon: '😈',
     asi: { int: 1, cha: 2 },
+    darkvision: 60,
+    spells: { ability: 'cha', list: [{ level: 1, key: 'thaumaturgy' }, { level: 3, key: 'hellish-rebuke' }, { level: 5, key: 'darkness' }] },
     speed: 30,
     size: 'Medium',
     age: 'Tieflings mature at the same rate as humans but live a few years longer.',
@@ -206,6 +229,8 @@ export const RACES = [
     name: 'Aasimar',
     icon: '✨',
     asi: { cha: 2 },
+    darkvision: 60,
+    spells: { ability: 'cha', list: [{ level: 1, key: 'light' }] },
     speed: 30,
     size: 'Medium',
     age: 'Aasimar mature at the same rate as humans, but they can live up to 160 years.',
@@ -228,6 +253,9 @@ export const RACES = [
     name: 'Tabaxi',
     icon: '🐾',
     asi: { dex: 2, cha: 1 },
+    darkvision: 60,
+    skills: ['perception', 'stealth'],
+    languageChoice: 1,
     speed: 30,
     size: 'Medium',
     age: 'Tabaxi have lifespans equivalent to humans.',
@@ -246,6 +274,7 @@ export const RACES = [
     name: 'Goliath',
     icon: '⛰️',
     asi: { str: 2, con: 1 },
+    skills: ['athletics'],
     speed: 30,
     size: 'Medium',
     age: 'Goliaths have lifespans comparable to humans. They enter adulthood in their late teens and usually live less than a century.',
@@ -263,7 +292,12 @@ export const RACES = [
     key: 'custom-lineage',
     name: 'Custom Lineage',
     icon: '✨',
-    asi: { other: 'One ability score of your choice increases by 2' },
+    asi: {},
+    asiChoice: { count: 1, amount: 2 },
+    featChoice: 1,
+    sizeChoice: ['Small', 'Medium'],
+    variableTrait: { darkvision: 60, skillChoice: { count: 1, from: 'any' } },
+    languageChoice: 1,
     speed: 30,
     size: 'Small or Medium',
     age: 'Varies',

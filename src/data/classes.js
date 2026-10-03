@@ -1,6 +1,8 @@
-// Aggregates all 12 D&D 5e classes (PHB) with full features and the complete
-// set of subclasses from the Player's Handbook, Dungeon Master's Guide,
-// Xanathar's Guide to Everything, and Tasha's Cauldron of Everything.
+// Aggregates the 12 PHB classes plus the Artificer (TCE) with full features and
+// subclasses from the Player's Handbook, Dungeon Master's Guide, Xanathar's
+// Guide to Everything, and Tasha's Cauldron of Everything. Rules mechanics from
+// classMechanics.js are merged onto each class and subclass.
+import artificer from './classData/artificer.js'
 import barbarian from './classData/barbarian.js'
 import bard from './classData/bard.js'
 import cleric from './classData/cleric.js'
@@ -13,11 +15,21 @@ import rogue from './classData/rogue.js'
 import sorcerer from './classData/sorcerer.js'
 import warlock from './classData/warlock.js'
 import wizard from './classData/wizard.js'
+import { CLASS_MECHANICS } from './classMechanics.js'
+
+const withMechanics = (cls) => {
+  const { subclasses: subMech = {}, ...mech } = CLASS_MECHANICS[cls.key] || {}
+  return {
+    ...cls,
+    ...mech,
+    subclasses: cls.subclasses.map((s) => ({ ...s, ...(subMech[s.key] || {}) })),
+  }
+}
 
 export const CLASSES = [
-  barbarian, bard, cleric, druid, fighter, monk,
+  artificer, barbarian, bard, cleric, druid, fighter, monk,
   paladin, ranger, rogue, sorcerer, warlock, wizard,
-]
+].map(withMechanics)
 
 export const getClass = (key) => CLASSES.find((c) => c.key === key)
 

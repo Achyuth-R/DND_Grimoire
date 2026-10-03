@@ -255,8 +255,8 @@ export default function Compendium() {
                 {Object.entries(r.asi || {})
                   .filter(([, v]) => typeof v === 'number')
                   .map(([k, v]) => <span key={k} className="chip gold">+{v} {k.toUpperCase()}</span>)}
-                {Object.values(r.asi || {}).some((v) => typeof v !== 'number')
-                  ? <span className="chip">+1 to others</span> : null}
+                {r.asiChoice
+                  ? <span className="chip">+{r.asiChoice.amount} to {r.asiChoice.count} of choice</span> : null}
               </div>
             </Link>
           ))}

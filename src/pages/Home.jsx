@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { CLASSES } from '../data/classes.js'
 
 const classShortDescs = {
+  artificer: 'Masters of invention, artificers use ingenuity and magic to unlock extraordinary capabilities in objects.',
   barbarian: 'A fierce warrior of primitive background who can enter a battle rage.',
   bard: 'An inspiring magician whose power echoes the music of creation.',
   cleric: 'A priestly champion who wields divine magic in service of a higher power.',
@@ -40,7 +41,7 @@ export default function Home() {
           <div className="stripe" style={{ background: '#c0392b' }} />
           <div className="icon">🎓</div>
           <h3>Classes & Subclasses</h3>
-          <div className="sub">All 12 core classes with features by level and their signature archetypes.</div>
+          <div className="sub">All 13 classes with features by level and their signature archetypes.</div>
         </Link>
         <Link to="/compendium?tab=races" className="card">
           <div className="stripe" style={{ background: '#27ae60' }} />
@@ -56,7 +57,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="section-title"><h2>The Twelve Classes</h2><div className="line" /></div>
+      <div className="section-title"><h2>The Thirteen Classes</h2><div className="line" /></div>
       <div className="grid">
         {CLASSES.map((c) => (
           <Link key={c.key} to={`/compendium/class/${c.key}`} className="card">

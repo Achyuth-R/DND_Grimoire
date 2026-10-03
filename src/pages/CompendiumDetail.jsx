@@ -103,6 +103,20 @@ function ClassDetail({ c }) {
           )}
         </div>
       </div>
+
+      {c.infusions?.length > 0 && (
+        <>
+          <div className="section-title" id="infusions"><h2>{c.name} Infusions</h2><div className="line" /></div>
+          {c.infusionsIntro && <p className="muted" style={{ whiteSpace: 'pre-wrap' }}>{c.infusionsIntro}</p>}
+          {c.infusions.map((inf) => (
+            <div className="feature" key={inf.key}>
+              <h4>{inf.prereqLevel ? <span className="lvl">Lvl {inf.prereqLevel}+</span> : null}{inf.name}</h4>
+              <p className="muted" style={{ margin: '0 0 6px' }}><i>Item: {inf.item}</i></p>
+              <p style={{ whiteSpace: 'pre-wrap' }}>{inf.desc}</p>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   )
 }
@@ -152,7 +166,7 @@ export default function CompendiumDetail() {
             {r.subraces.map((s) => (
               <div className="panel" key={s.key}>
                 <h3>{s.name}</h3>
-                <div className="pill-row"><span className="pill"><b>Ability:</b> {asiText(s.asi)}</span></div>
+                <div className="pill-row"><span className="pill"><b>Ability:</b> {[s.replacesParentAsi ? 'Replaces the base racial increases' : null, asiText(s.asi), s.asiChoice ? `+${s.asiChoice.amount} to ${s.asiChoice.count} of choice` : null].filter(Boolean).join('; ') || 'No additional increase'}</span></div>
                 {s.traits.map((t, i) => (
                   <div className="feature" key={i}><h4>{t.name}</h4><p style={{ whiteSpace: 'pre-wrap' }}>{t.desc}</p></div>
                 ))}

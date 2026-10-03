@@ -1,83 +1,387 @@
-// Derived character math: applies race ASIs, computes mods, AC, HP, saves, skills.
+// Derived character math: the single home for rules calculations.
+// Reads the structured mechanics on races, classes (classMechanics.js), feats
+// (featMechanics.js) and equipment; components only render what derive() returns.
 import { getClass } from './data/classes.js'
 import { getRace } from './data/races.js'
 import { getBackground } from './data/backgrounds.js'
 import { ABILITIES, SKILLS, abilityMod, profBonus } from './data/abilities.js'
+import { getFeat } from './data/featMechanics.js'
+import { getSpellByName, getSpell } from './data/spells.js'
+import { slotsFor, maxSpellLevel } from './data/spellSlots.js'
+import { getArmor, getWeapon, STARTING_EQUIPMENT, SHIELD } from './data/equipment.js'
+import { FIGHTING_STYLES } from './data/classMechanics.js'
 
-export function effectiveScores(char) {
+const ABILITY_KEYS = ABILITIES.map((a) => a.key)
+const isAbility = (k) => ABILITY_KEYS.includes(k)
+const spellKey = (name) => getSpellByName(name)?.key
+const uniq = (arr) => [...new Set(arr.filter(Boolean))]
+
+// ---------- Race ----------
+
+export function getSubrace(char) {
   const race = getRace(char.raceKey)
-  const out = { ...char.scores }
-  if (race?.asi) for (const [k, v] of Object.entries(race.asi)) out[k] = (out[k] || 0) + v
-  if (char.subraceKey && race?.subraces) {
-    const sub = race.subraces.find((s) => s.key === char.subraceKey)
-    if (sub?.asi) for (const [k, v] of Object.entries(sub.asi)) out[k] = (out[k] || 0) + v
+  return race?.subraces?.find((s) => s.key === char.subraceKey) || null
+}
+
+// Race + subrace mechanics merged into one view (subrace overrides scalars, lists concatenate).
+export function raceInfo(char) {
+  const race = getRace(char.raceKey)
+  if (!race) return null
+  const sub = getSubrace(char)
+  const pick = (k) => (sub && sub[k] !== undefined ? sub[k] : race[k])
+  const cat = (k) => [...(race[k] || []), ...(sub?.[k] || [])]
+  return {
+    race, sub,
+    asiChoice: pick('asiChoice'),
+    skillChoice: pick('skillChoice'),
+    featChoice: (race.featChoice || 0) + (sub?.featChoice || 0),
+    languageChoice: (race.languageChoice || 0) + (sub?.languageChoice || 0),
+    toolChoice: pick('toolChoice'),
+    cantripChoice: pick('cantripChoice'),
+    sizeChoice: pick('sizeChoice'),
+    variableTrait: pick('variableTrait'),
+    ancestryChoice: pick('ancestryChoice'),
+    spells: pick('spells'),
+    skills: cat('skills'),
+    weapons: cat('weapons'),
+    armor: cat('armor'),
+    tools: cat('tools'),
+    darkvision: pick('darkvision') || 0,
+    speed: pick('speed') || 30,
+    size: race.size,
+    hpPerLevel: (race.hpPerLevel || 0) + (sub?.hpPerLevel || 0),
+    languages: race.languages.filter((l) => !/choice/i.test(l)),
+  }
+}
+
+// ---------- Class / subclass ----------
+
+// The chosen subclass, but only once the character has reached the subclass level.
+export function activeSubclass(char) {
+  const cls = getClass(char.classKey)
+  if (!cls || !char.subclassKey) return null
+  if (char.level < (cls.subclassLevel || 3)) return null
+  return cls.subclasses.find((s) => s.key === char.subclassKey) || null
+}
+
+// Class levels at which an ASI/feat is earned, up to the character's level.
+export const earnedAsiLevels = (char) => (getClass(char.classKey)?.asiLevels || []).filter((l) => l <= char.level)
+
+// Number of skill expertise picks the class grants at this level.
+export function expertiseAllowed(char) {
+  const cls = getClass(char.classKey)
+  return (cls?.expertise || []).filter((e) => e.level <= char.level).reduce((n, e) => n + e.count, 0)
+}
+
+// ---------- Feats ----------
+
+// Every feat the character has taken, with the per-feat choices stored on the character.
+export function featsTaken(char) {
+  const out = []
+  const ri = raceInfo(char)
+  if (ri?.featChoice && char.raceChoices?.feat?.key) {
+    const feat = getFeat(char.raceChoices.feat.key)
+    if (feat) out.push({ feat, choices: char.raceChoices.feat, source: ri.sub?.name || ri.race.name })
+  }
+  for (const lvl of earnedAsiLevels(char)) {
+    const lu = char.levelUps?.[lvl]
+    if (lu?.type === 'feat' && lu.feat?.key) {
+      const feat = getFeat(lu.feat.key)
+      if (feat) out.push({ feat, choices: lu.feat, source: `Level ${lvl}` })
+    }
   }
   return out
 }
 
+// ---------- Ability scores ----------
+
+function addAsi(out, asi, mult = 1) {
+  for (const [k, v] of Object.entries(asi || {})) if (isAbility(k) && typeof v === 'number') out[k] = (out[k] || 0) + v * mult
+}
+
+// Ability score increases from every source, as {key: bonus}, split by source for display.
+export function scoreBonuses(char) {
+  const race = {}
+  const ri = raceInfo(char)
+  if (ri) {
+    if (!ri.sub?.replacesParentAsi) addAsi(race, ri.race.asi)
+    addAsi(race, ri.sub?.asi)
+    if (ri.asiChoice) {
+      const allowed = Object.entries(char.raceChoices?.asi || {}).filter(([k]) => !(ri.asiChoice.exclude || []).includes(k))
+      for (const [k] of allowed.slice(0, ri.asiChoice.count)) race[k] = (race[k] || 0) + ri.asiChoice.amount
+    }
+  }
+  const level = {}
+  for (const lvl of earnedAsiLevels(char)) {
+    const lu = char.levelUps?.[lvl]
+    if (lu?.type === 'asi') addAsi(level, lu.asi)
+  }
+  for (const { feat, choices } of featsTaken(char)) {
+    if (feat.asi?.fixed) addAsi(level, feat.asi.fixed)
+    else if (feat.asi?.choose && feat.asi.choose.includes(choices.ability)) addAsi(level, { [choices.ability]: feat.asi.amount })
+  }
+  return { race, level }
+}
+
+export function effectiveScores(char) {
+  const { race, level } = scoreBonuses(char)
+  const out = {}
+  for (const k of ABILITY_KEYS) {
+    const base = char.scores?.[k] ?? 10
+    const total = base + (race[k] || 0) + (level[k] || 0)
+    // Increases can't raise a score above 20 (a higher base score is left as entered).
+    out[k] = total > 20 ? Math.max(20, base) : total
+  }
+  return out
+}
+
+// ---------- Equipment ----------
+
+// Resolves starting-equipment selections into concrete items.
+// char.equipment = { gold: bool, choices: {groupIdx: optionIdx}, picks: {'g-o-i-n': weaponKey} }
+export function inventory(char) {
+  const groups = STARTING_EQUIPMENT[char.classKey] || []
+  const eq = char.equipment || {}
+  const inv = { weapons: [], armor: [], shield: false, gear: [] }
+  if (eq.gold) return inv
+  groups.forEach((g, gi) => {
+    const oi = g.fixed ? 0 : eq.choices?.[gi]
+    const items = g.fixed || g.options?.[oi]
+    if (!items) return
+    items.forEach((it, ii) => {
+      if (it.weapon) inv.weapons.push({ key: it.weapon, qty: it.qty })
+      else if (it.armor) inv.armor.push(it.armor)
+      else if (it.shield) inv.shield = true
+      else if (it.gear) inv.gear.push(it.gear)
+      else if (it.pick) {
+        for (let n = 0; n < it.qty; n++) {
+          const key = eq.picks?.[`${gi}-${oi ?? 0}-${ii}-${n}`]
+          if (key) inv.weapons.push({ key, qty: 1 })
+        }
+      }
+    })
+  })
+  return inv
+}
+
+// Is the character proficient with a weapon, given proficiency strings like "Martial weapons" or "Longswords"?
+export function weaponProficient(weapon, weaponProfs) {
+  if (!weapon) return false
+  const singular = (s) => s.toLowerCase().replace(/s$/, '')
+  return weaponProfs.some((p) => {
+    const lp = p.toLowerCase()
+    if (lp === 'simple weapons') return weapon.category === 'simple'
+    if (lp === 'martial weapons') return weapon.category === 'martial'
+    return singular(p) === singular(weapon.name)
+  })
+}
+
+export function armorProficient(armor, armorProfs) {
+  if (!armor) return true
+  if (armorProfs.includes('All armor')) return true
+  const need = { light: 'Light armor', medium: 'Medium armor', heavy: 'Heavy armor' }[armor.category]
+  return armorProfs.includes(need)
+}
+
+// ---------- Derive ----------
+
 export function derive(char) {
   const cls = getClass(char.classKey)
-  const race = getRace(char.raceKey)
+  const ri = raceInfo(char)
+  const race = ri?.race
   const bg = getBackground(char.backgroundKey)
+  const sub = activeSubclass(char)
+  const feats = featsTaken(char)
   const scores = effectiveScores(char)
   const mods = {}
-  for (const a of ABILITIES) mods[a.key] = abilityMod(scores[a.key] ?? 10)
+  for (const k of ABILITY_KEYS) mods[k] = abilityMod(scores[k])
   const pb = profBonus(char.level)
 
-  // Proficient skills = class-chosen + background-granted
-  const profSkills = new Set(char.skills || [])
-  if (bg) bg.skills.forEach((s) => profSkills.add(s))
-  const expertise = new Set(char.expertise || [])
+  // --- Proficiencies ---
+  const subSkills = sub ? [...(sub.skills || []), ...(sub.skillChoice ? (char.subclassChoices?.skills || []).slice(0, sub.skillChoice.count) : [])] : []
+  const raceSkillPicks = ri?.skillChoice ? (char.raceChoices?.skills || []).slice(0, ri.skillChoice.count) : []
+  const variableSkill = ri?.variableTrait && char.raceChoices?.variable === 'skill' ? (char.raceChoices?.variableSkills || []).slice(0, 1) : []
+  const featSkills = feats.flatMap(({ feat, choices }) => (feat.skillChoice ? (choices.skills || []).slice(0, feat.skillChoice.count) : []))
+  const skillProfs = new Set(uniq([
+    ...(char.skills || []), ...(bg?.skills || []), ...(ri?.skills || []),
+    ...raceSkillPicks, ...variableSkill, ...subSkills, ...featSkills,
+  ]))
 
-  // Bard's Jack of All Trades: half proficiency to non-proficient checks (incl. initiative)
-  const hasJoat = char.classKey === 'bard' && char.level >= 2
+  // Expertise only counts on proficient skills and only as many as the class grants.
+  const classExpertise = (char.expertise || []).filter((s) => skillProfs.has(s)).slice(0, expertiseAllowed(char))
+  const subExpertise = sub ? [...(sub.expertiseSkills || []), ...(sub.skillChoice?.expertise ? subSkills : [])] : []
+  const featExpertise = feats.flatMap(({ feat, choices }) => (feat.expertiseChoice ? (choices.expertise || []).slice(0, feat.expertiseChoice) : []))
+  const expertise = new Set([...classExpertise, ...subExpertise, ...featExpertise].filter((s) => skillProfs.has(s)))
+
+  const saveProfs = new Set(cls?.saves || [])
+  feats.forEach(({ feat, choices }) => { if (feat.saveFromAsi && choices.ability) saveProfs.add(choices.ability) })
+
+  const profs = {
+    armor: uniq([...(cls?.armor || []), ...(ri?.armor || []), ...(sub?.armor || []), ...feats.flatMap(({ feat }) => feat.armor || [])]),
+    weapons: uniq([...(cls?.weapons || []), ...(ri?.weapons || []), ...(sub?.weapons || [])]),
+    tools: uniq([
+      ...(cls?.tools || []), ...(bg?.tools || []), ...(ri?.tools || []), ...(sub?.tools || []),
+      char.raceChoices?.tool, ...feats.flatMap(({ feat }) => feat.tools || []),
+    ]),
+    languages: uniq([...(ri?.languages || []), ...(sub?.languages || []), ...(char.languages || [])]),
+  }
+
+  // Jack of All Trades: half proficiency (rounded down) on non-proficient checks, incl. initiative.
+  const hasJoat = !!cls?.jackOfAllTrades && char.level >= cls.jackOfAllTrades
   const joat = Math.floor(pb / 2)
 
   const saves = {}
-  for (const a of ABILITIES) {
-    const proficient = cls?.saves?.includes(a.key)
-    saves[a.key] = { value: mods[a.key] + (proficient ? pb : 0), proficient }
+  for (const k of ABILITY_KEYS) {
+    const proficient = saveProfs.has(k)
+    saves[k] = { value: mods[k] + (proficient ? pb : 0), proficient }
   }
 
   const skills = SKILLS.map((s) => {
-    const proficient = profSkills.has(s.key)
+    const proficient = skillProfs.has(s.key)
     const expert = expertise.has(s.key)
     const bonus = expert ? pb * 2 : proficient ? pb : hasJoat ? joat : 0
-    return { ...s, value: mods[s.ability] + bonus, proficient, expert, joat: !proficient && !expert && hasJoat }
+    return { ...s, value: mods[s.ability] + bonus, proficient, expert, joat: !proficient && hasJoat }
   })
 
-  // HP: max at 1st level + average per level after; Hill Dwarf adds +1/level
+  // --- Hit points ---
   const hd = cls?.hitDie || 8
-  const conMod = mods.con
   const avgPerLevel = Math.floor(hd / 2) + 1
-  const hillDwarf = char.subraceKey === 'hill' ? char.level : 0
-  const maxHp = hd + conMod + (char.level - 1) * (avgPerLevel + conMod) + hillDwarf
+  const perLevelBonus = (ri?.hpPerLevel || 0) + (sub?.hpPerLevel || 0) + feats.reduce((n, { feat }) => n + (feat.hpPerLevel || 0), 0)
+  let maxHp = Math.max(1, hd + mods.con)
+  for (let l = 2; l <= char.level; l++) maxHp += Math.max(1, avgPerLevel + mods.con)
+  maxHp += perLevelBonus * char.level
 
-  const dexMod = mods.dex
-  const baseAC = 10 + dexMod
-  const initiative = dexMod + (hasJoat ? joat : 0)
-  const speed = char.subraceKey === 'wood' ? 35 : race?.speed || 30
-  const passivePerception = 10 + skills.find((s) => s.key === 'perception').value
-
-  // Spellcasting (only meaningful for caster classes)
-  let spell = null
-  if (cls?.spellcaster && cls.spellAbility) {
-    const ab = cls.spellAbility
-    spell = { ability: ab, dc: 8 + pb + mods[ab], attack: pb + mods[ab] }
+  // --- Armor class ---
+  const inv = inventory(char)
+  const armor = getArmor(char.equippedArmor)
+  const shieldOn = !!char.shield
+  const mediumDexCap = feats.some(({ feat }) => feat.mediumDexCap) ? 3 : 2
+  const style = FIGHTING_STYLES[char.fightingStyle] && cls?.fightingStyle && char.level >= cls.fightingStyle.level ? FIGHTING_STYLES[char.fightingStyle] : null
+  const acOptions = []
+  if (armor) {
+    const cap = armor.category === 'medium' ? mediumDexCap : armor.dexCap
+    const dex = cap === null ? mods.dex : Math.min(mods.dex, cap)
+    acOptions.push({ value: armor.base + dex + (style?.acArmored || 0) + (shieldOn ? SHIELD.bonus : 0), label: `${armor.name}${shieldOn ? ' + shield' : ''}` })
+  } else {
+    acOptions.push({ value: 10 + mods.dex + (shieldOn ? SHIELD.bonus : 0), label: `Unarmored${shieldOn ? ' + shield' : ''}` })
+    const unarmored = [cls?.unarmoredAC, sub?.unarmoredAC, ...feats.map(({ feat }) => feat.unarmoredAC)].filter(Boolean)
+    for (const u of unarmored) {
+      if (shieldOn && !u.shieldOk) continue
+      const v = (u.base || 10) + u.abilities.reduce((n, k) => n + mods[k], 0) + (shieldOn ? SHIELD.bonus : 0)
+      acOptions.push({ value: v, label: `Unarmored Defense (${u.base || 10} + ${u.abilities.map((k) => k.toUpperCase()).join(' + ')})${shieldOn ? ' + shield' : ''}` })
+    }
   }
+  const bestAc = acOptions.reduce((a, b) => (b.value > a.value ? b : a))
+  const acNotes = []
+  if (armor && !armorProficient(armor, profs.armor)) acNotes.push(`Not proficient with ${armor.name.toLowerCase()} armor: disadvantage on STR/DEX rolls and no spellcasting.`)
+  if (armor?.stealthDis) acNotes.push('Disadvantage on Stealth checks.')
+  if (shieldOn && !profs.armor.some((a) => a === 'Shields' || a === 'All armor' || a.startsWith('Shields'))) acNotes.push('Not proficient with shields.')
+
+  // --- Speed ---
+  let speed = ri?.speed || 30
+  if (armor?.strReq && scores.str < armor.strReq) { speed -= 10; acNotes.push(`STR below ${armor.strReq}: speed reduced by 10 ft.`) }
+  let classSpeed = 0
+  for (const b of cls?.speedBonus || []) {
+    if (char.level < b.level) continue
+    if (b.unarmored && (armor || shieldOn)) continue
+    if (b.noHeavyArmor && armor?.category === 'heavy') continue
+    classSpeed = Math.max(classSpeed, b.amount)
+  }
+  speed += classSpeed + feats.reduce((n, { feat }) => n + (feat.speed || 0), 0)
+
+  const initiative = mods.dex + (hasJoat ? joat : 0) + feats.reduce((n, { feat }) => n + (feat.initiative || 0), 0)
+  const passiveBonus = feats.reduce((n, { feat }) => n + (feat.passive || 0), 0)
+  const passivePerception = 10 + skills.find((s) => s.key === 'perception').value + passiveBonus
+  const darkvision = Math.max(
+    ri?.darkvision || 0,
+    ri?.variableTrait && char.raceChoices?.variable === 'darkvision' ? ri.variableTrait.darkvision : 0,
+    sub?.darkvision || 0,
+  )
+  const size = ri?.sizeChoice ? char.raceChoices?.size || ri.sizeChoice[1] : ri?.size
+
+  // --- Spellcasting ---
+  const spell = deriveSpellcasting(char, cls, sub, mods, pb)
+  const innate = deriveInnateSpells(char, ri, feats, mods, pb)
+
+  // --- Attacks from carried weapons ---
+  const attacks = inv.weapons.map(({ key, qty }) => {
+    const w = getWeapon(key)
+    const finesse = w.props.includes('finesse')
+    const monkWeapon = char.classKey === 'monk' && (w.key === 'shortsword' || (w.category === 'simple' && w.kind === 'melee' && !w.props.includes('two-handed') && !w.props.includes('heavy')))
+    const ab = w.kind === 'ranged' && !w.props.includes('thrown') ? 'dex' : finesse || monkWeapon ? (mods.dex > mods.str ? 'dex' : 'str') : 'str'
+    const prof = weaponProficient(w, profs.weapons)
+    const styleBonus = style?.attackBonus?.ranged && w.kind === 'ranged' ? style.attackBonus.ranged : 0
+    const toHit = mods[ab] + (prof ? pb : 0) + styleBonus
+    const dmgMod = mods[ab]
+    return {
+      key, qty, name: w.name, proficient: prof,
+      bonus: toHit,
+      damage: `${w.damage}${dmgMod ? (dmgMod > 0 ? ` + ${dmgMod}` : ` − ${-dmgMod}`) : ''} ${w.type}`,
+      notes: [...w.props, w.range ? `range ${w.range}` : null].filter(Boolean).join(', '),
+    }
+  })
 
   return {
-    cls, race, bg, scores, mods, pb, saves, skills,
-    maxHp, baseAC, initiative, speed, passivePerception, hitDie: hd, spell,
+    cls, race, sub, bg, ri, feats, scores, mods, pb, saves, skills, profs, expertise,
+    maxHp, ac: bestAc.value, acLabel: bestAc.label, acNotes, baseAC: bestAc.value,
+    initiative, speed, darkvision, size, passivePerception, hitDie: hd,
+    spell, innate, inventory: inv, attacks, fightingStyle: style,
   }
 }
+
+function deriveSpellcasting(char, cls, sub, mods, pb) {
+  const cast = sub?.casting || cls?.casting
+  if (!cast || char.level < cast.startLevel) return null
+  const ab = cast.ability
+  const slots = slotsFor(cast, char.level)
+  const maxLevel = maxSpellLevel(slots)
+  const lvlMod = mods[ab]
+  const preparedMax = cast.prepared === 'level' ? Math.max(1, lvlMod + char.level)
+    : cast.prepared === 'half' ? Math.max(1, lvlMod + Math.floor(char.level / 2)) : null
+  const alwaysPrepared = []
+  for (const [lvl, names] of Object.entries(sub?.alwaysPrepared || {})) {
+    if (Number(lvl) <= char.level) names.forEach((n) => alwaysPrepared.push(spellKey(n)))
+  }
+  const bonusCantrips = (sub?.bonusCantrips || []).map(spellKey)
+  if (sub?.cantripChoice && char.subclassChoices?.cantrip) bonusCantrips.push(char.subclassChoices.cantrip)
+  return {
+    type: cast.type, ability: ab, dc: 8 + pb + lvlMod, attack: pb + lvlMod,
+    startLevel: cast.startLevel, slots, maxLevel,
+    cantripsKnown: cast.cantrips?.[char.level - 1] || 0,
+    spellsKnown: cast.known ? cast.known[char.level - 1] : null,
+    preparedMax,
+    lists: uniq([cast.list, ...(sub?.extraLists || [])]),
+    expanded: uniq((sub?.expandedList || []).map(spellKey)),
+    alwaysPrepared: uniq(alwaysPrepared),
+    bonusCantrips: uniq(bonusCantrips),
+  }
+}
+
+// Racial and feat spells cast without (or alongside) class spellcasting.
+function deriveInnateSpells(char, ri, feats, mods, pb) {
+  const out = []
+  const add = (key, ability, source, minLevel = 1) => {
+    if (!key || char.level < minLevel) return
+    out.push({ key, ability, source, dc: 8 + pb + mods[ability], attack: pb + mods[ability] })
+  }
+  if (ri?.spells) ri.spells.list.forEach((s) => add(s.key, ri.spells.ability, ri.sub?.name || ri.race.name, s.level))
+  if (ri?.cantripChoice && char.raceChoices?.cantrip) add(char.raceChoices.cantrip, ri.cantripChoice.ability, ri.sub?.name || ri.race.name)
+  for (const { feat, choices, source } of feats) {
+    const ab = choices.spellAbility || 'int'
+    ;(feat.spells || []).forEach((n) => add(spellKey(n), ab, `${feat.name} (${source})`))
+    ;(choices.spells || []).forEach((k) => add(k, ab, `${feat.name} (${source})`))
+  }
+  return out.filter((s, i) => out.findIndex((o) => o.key === s.key) === i)
+}
+
+// ---------- Sheet text helpers ----------
 
 // All racial traits (base + subrace) as {name, desc} for the sheet.
 export function racialTraits(char) {
   const race = getRace(char.raceKey)
   if (!race) return []
   const out = [...race.traits]
-  const sub = race.subraces?.find((s) => s.key === char.subraceKey)
+  const sub = getSubrace(char)
   if (sub) sub.traits.forEach((t) => out.push(t))
   return out
 }
@@ -94,9 +398,9 @@ export function classFeaturesUpTo(char) {
   const cls = getClass(char.classKey)
   if (!cls) return []
   const feats = cls.features?.filter((f) => f.level <= char.level) || []
-  if (char.subclassKey) {
-    const sub = cls.subclasses?.find((s) => s.key === char.subclassKey)
-    if (sub) sub.features?.filter((f) => f.level <= char.level).forEach((f) => feats.push({ ...f, sub: sub.name }))
-  }
+  const sub = activeSubclass(char)
+  if (sub) sub.features?.filter((f) => f.level <= char.level).forEach((f) => feats.push({ ...f, sub: sub.name }))
   return feats.sort((a, b) => a.level - b.level)
 }
+
+export const spellName = (key) => getSpell(key)?.name || key
