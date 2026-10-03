@@ -7,8 +7,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { loadCharacters, saveCharacters, putLocal, migrateCharacter, onLocalWrite, emitCharactersChanged } from './store.js'
 
-const URL_ = import.meta.env.VITE_SUPABASE_URL
-const KEY_ = import.meta.env.VITE_SUPABASE_ANON_KEY
+// Tolerate a value pasted as a whole "NAME=value" line (or with quotes/whitespace) in the host's settings.
+const cleanEnv = (v, name) => (v || '').trim().replace(new RegExp(`^${name}\\s*=\\s*`), '').replace(/^["']|["']$/g, '')
+const URL_ = cleanEnv(import.meta.env.VITE_SUPABASE_URL, 'VITE_SUPABASE_URL').replace(/\/rest\/v1\/?$/, '')
+const KEY_ = cleanEnv(import.meta.env.VITE_SUPABASE_ANON_KEY, 'VITE_SUPABASE_ANON_KEY')
 const TABLE = 'characters'
 const PENDING_KEY = 'grimoire.pending.v1'
 const PUSH_DELAY = 800
