@@ -8,6 +8,7 @@ import { getMonster, crLabel, abilityModStr } from '../data/monsters.js'
 import { ABILITIES, SKILLS } from '../data/abilities.js'
 import { FEATS } from '../data/feats.js'
 import { ITEMS } from '../data/items.js'
+import { getFeat } from '../data/featMechanics.js'
 import { CONDITIONS } from '../data/conditions.js'
 import { DEITIES } from '../data/deities.js'
 import { MECHANICS } from '../data/mechanics.js'
@@ -196,10 +197,19 @@ export default function CompendiumDetail() {
           <span className="pill"><b>Tools:</b> {b.tools.length ? b.tools.join(', ') : 'None'}</span>
           <span className="pill"><b>Languages:</b> {b.languages || 'None'}</span>
         </div>
-        <div className="panel">
-          <h3>Feature: {b.feature.name}</h3>
-          <p className="muted">{b.feature.desc}</p>
-        </div>
+        {b.feature && (
+          <div className="panel">
+            <h3>Feature: {b.feature.name}</h3>
+            <p className="muted">{b.feature.desc}</p>
+          </div>
+        )}
+        {b.originFeat && (
+          <div className="panel">
+            <h3>Origin Feat: {getFeat(b.originFeat)?.name}</h3>
+            <p className="muted" style={{ whiteSpace: 'pre-wrap' }}>{getFeat(b.originFeat)?.desc}</p>
+            {b.asiFrom && <p className="muted"><b className="gold">Ability Scores:</b> {b.asiFrom.map(abName).join(', ')} (+2/+1 or +1/+1/+1)</p>}
+          </div>
+        )}
         <div className="panel">
           <h3>Equipment</h3>
           <p className="muted">{b.equipment}</p>

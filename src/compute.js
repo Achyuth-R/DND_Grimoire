@@ -90,6 +90,12 @@ export function featsTaken(char) {
       if (feat) out.push({ feat, choices: lu.feat, source: `Level ${lvl}` })
     }
   }
+  // 2024 backgrounds grant a fixed origin feat.
+  const bgDef = getBackground(char.backgroundKey)
+  if (bgDef?.originFeat) {
+    const feat = getFeat(bgDef.originFeat)
+    if (feat) out.push({ feat, choices: { key: feat.key, ...(char.bgFeatChoices || {}) }, source: bgDef.name })
+  }
   // Extra feats granted by the DM, at any level.
   ;(char.bonusFeats || []).forEach((choices, i) => {
     const feat = choices?.key && getFeat(choices.key)
@@ -115,6 +121,13 @@ export function scoreBonuses(char) {
       const allowed = Object.entries(char.raceChoices?.asi || {}).filter(([k]) => !(ri.asiChoice.exclude || []).includes(k))
       for (const [k] of allowed.slice(0, ri.asiChoice.count)) race[k] = (race[k] || 0) + ri.asiChoice.amount
     }
+  }
+  // 2024 backgrounds: +2/+1 or +1/+1/+1 among the listed abilities (or none, if using racial increases).
+  const bgDef = getBackground(char.backgroundKey)
+  if (bgDef?.asiFrom) {
+    const picks = Object.entries(char.bgAsi || {}).filter(([k, v]) => bgDef.asiFrom.includes(k) && v > 0)
+    const total = picks.reduce((n, [, v]) => n + v, 0)
+    if (total <= 3 && picks.every(([, v]) => v <= 2)) for (const [k, v] of picks) race[k] = (race[k] || 0) + v
   }
   const level = {}
   for (const lvl of earnedAsiLevels(char)) {

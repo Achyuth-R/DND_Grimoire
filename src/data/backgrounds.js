@@ -341,6 +341,24 @@ Source: Player's Handbook
 Skill Proficiencies: Athletics, Perception Tool Proficiencies: Navigator's tools, vehicles (water) Languages: None Equipment: A belaying pin (club), 50 feet of silk rope, a lucky charm such as a rabbit foot or a small stone with a hole in the center (or you may roll for a random trinket on the Trinkets table in chapter 5), a set of common clothes, and a belt pouch containing 10 gp`,
     equipment: 'A belaying pin (club), 50 feet of silk rope, a lucky charm, a set of common clothes, and a belt pouch containing 10 gp.',
   },
+  {
+    // Player's Handbook (2024). 2024 backgrounds grant ability increases and an origin feat instead of a feature.
+    key: 'guard',
+    name: 'Guard',
+    source: 'PHB 2024',
+    icon: '🛡️',
+    skills: ['athletics', 'perception'],
+    tools: ['One kind of gaming set'],
+    languages: 0,
+    asiFrom: ['str', 'int', 'wis'],
+    originFeat: 'alert',
+    desc: `Your feet begin to ache when you remember the countless hours you spent at your post in the tower. You were trained to keep one eye looking outside the wall, watching for marauders sweeping from the nearby forest, and your other eye looking inside the wall, searching for cutpurses and troublemakers.
+
+Source: Player's Handbook (2024)
+
+Ability Scores: Strength, Intelligence, Wisdom Feat: Alert (see chapter 5) Skill Proficiencies: Athletics and Perception Tool Proficiency: Choose one kind of Gaming Set (see chapter 6) Equipment: Choose A or B: (A) Spear, Light Crossbow, 20 Bolts, Gaming Set (same as above), Hooded Lantern, Manacles, Quiver, Traveler's Clothes, 12 GP; or (B) 50 GP`,
+    equipment: "Choose A or B: (A) Spear, Light Crossbow, 20 Bolts, Gaming Set (same as above), Hooded Lantern, Manacles, Quiver, Traveler's Clothes, 12 GP; or (B) 50 GP",
+  },
 ]
 
 export const getBackground = (key) => BACKGROUNDS.find((b) => b.key === key)

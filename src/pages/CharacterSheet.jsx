@@ -200,8 +200,12 @@ export default function CharacterSheet() {
                   <ul className="cs-feat-list">
                     {traits.map((t, i) => <li key={i}><b>{t.name}.</b> {t.desc}</li>)}
                   </ul>
-                  <div className="cs-feat-h">Background Feature: {d.bg?.feature?.name}</div>
-                  <p style={{ fontSize: 11, fontStyle: 'italic', margin: '0 0 8px', paddingLeft: 8, borderLeft: '2px solid #ccc' }}>{d.bg?.feature?.desc}</p>
+                  {d.bg?.feature && (
+                    <>
+                      <div className="cs-feat-h">Background Feature: {d.bg.feature.name}</div>
+                      <p style={{ fontSize: 11, fontStyle: 'italic', margin: '0 0 8px', paddingLeft: 8, borderLeft: '2px solid #ccc' }}>{d.bg.feature.desc}</p>
+                    </>
+                  )}
                   {(d.feats.length > 0 || d.fightingStyle || infusions.length > 0) && (
                     <>
                       <div className="cs-feat-h">Feats & Choices</div>

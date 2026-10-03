@@ -135,6 +135,11 @@ eq(mi.innate.map((s) => s.key).sort(), ['fire-bolt', 'guidance'], 'bonus feat sp
 eq(normalize(base({ classKey: 'wizard', skills: ['stealth', 'arcana'] })).skills, ['stealth', 'arcana'], 'off-list class skill kept')
 const cust = derive(base({ customProfs: { skills: ['stealth'], expertise: ['stealth'], saves: ['wis'], tools: "Thieves' tools, Lute", languages: 'Sylvan' } }))
 eq([cust.skills.find((s) => s.key === 'stealth').expert, cust.saves.wis.proficient, cust.profs.tools.includes('Lute'), cust.profs.languages.includes('Sylvan')], [true, true, true, true], 'custom proficiencies')
+// Guard (2024): +2/+1 among STR/INT/WIS, Alert origin feat; "none" skips the increases.
+const guard = derive(base({ backgroundKey: 'guard', subraceKey: 'standard', scores: sc, bgAsiMode: '21', bgAsi: { str: 2, wis: 1 } }))
+eq([guard.scores.str, guard.scores.wis, guard.initiative, guard.skills.find((s) => s.key === 'perception').proficient], [13, 12, 5, true], 'Guard background')
+const guardNone = normalize(base({ backgroundKey: 'guard', scores: sc, bgAsiMode: 'none', bgAsi: { str: 2, wis: 1 } }))
+eq(derive(guardNone).scores.str, 11, 'Guard with no background increases')
 console.log(`builder rules checked (${owed} owed choices across defaults)`)
 
 console.log(fails ? `${fails} failures` : 'all checks passed')

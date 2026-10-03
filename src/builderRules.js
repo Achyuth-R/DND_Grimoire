@@ -138,6 +138,11 @@ export function normalize(input) {
   const known = new Set(d0.profs.languages.filter((l) => !(c.languages || []).includes(l)))
   c.languages = take([...new Set(c.languages || [])].filter((l) => !known.has(l)), languageSlots(c))
 
+  // Background increases only apply to backgrounds that offer them
+  const bgNow = getBackground(c.backgroundKey)
+  if (!bgNow?.asiFrom || c.bgAsiMode === 'none') { c.bgAsi = {}; if (!bgNow?.asiFrom) delete c.bgAsiMode }
+  else c.bgAsi = Object.fromEntries(Object.entries(c.bgAsi || {}).filter(([k]) => bgNow.asiFrom.includes(k)))
+
   // Equipment resets when the class changes; equipped items must be carried
   if (c.equipment?.classKey !== c.classKey) c.equipment = { classKey: c.classKey, choices: {}, picks: {} }
   const inv = inventory(c)
@@ -228,7 +233,13 @@ export function validateStep(step, char) {
   }
 
   if (step === 'background') {
-    if (!getBackground(char.backgroundKey)) errs.push('Choose a background.')
+    const bgDef = getBackground(char.backgroundKey)
+    if (!bgDef) errs.push('Choose a background.')
+    if (bgDef?.asiFrom) {
+      const vals = Object.values(char.bgAsi || {})
+      if (!char.bgAsiMode) errs.push('Choose how your background increases your ability scores (or None).')
+      else if (char.bgAsiMode === '21' && !(vals.includes(2) && vals.includes(1))) errs.push('Choose which ability gets +2 and which gets +1.')
+    }
     const slots = languageSlots(char)
     if ((char.languages || []).length < slots) errs.push(`Choose ${slots} additional language${slots > 1 ? 's' : ''} (${(char.languages || []).length} chosen).`)
   }
