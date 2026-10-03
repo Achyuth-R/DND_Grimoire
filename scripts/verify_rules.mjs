@@ -98,5 +98,31 @@ check(art5.profs.weapons.includes('Martial weapons'), 'Battle smith martial weap
 check(derive(base({ classKey: 'artificer', subclassKey: 'armorer', level: 3 })).profs.armor.includes('Heavy armor'), 'Armorer heavy armor')
 eq(derive(base({ classKey: 'artificer', level: 20 })).spell.slots.map((s) => s.count), [4, 3, 3, 3, 2], 'Artificer 20 slots')
 
+// ---- Builder rules: normalize + validate never crash, and a fresh character only owes real choices ----
+const { normalize, validateStep, stepsFor, languageSlots } = await import('../src/builderRules.js')
+let owed = 0
+for (const r of RACES) {
+  for (const sk of r.subraces.length ? r.subraces.map((s) => s.key) : ['']) {
+    for (const c of CLASSES) {
+      for (const level of [1, 4, 20]) {
+        const ch = normalize(base({ raceKey: r.key, subraceKey: sk, classKey: c.key, level, scoreMethod: 'standard' }))
+        const errs = stepsFor(ch).flatMap((s) => validateStep(s.key, ch))
+        // A default character must at least be asked for its class skills; nothing may be NaN/undefined in messages.
+        check(errs.some((e) => e.includes('class skills')), `${r.key}/${sk}/${c.key}/${level} not asked for class skills`)
+        check(!errs.some((e) => /undefined|NaN/.test(e)), `${r.key}/${sk}/${c.key}/${level} bad message: ${errs.find((e) => /undefined|NaN/.test(e))}`)
+        owed += errs.length
+      }
+    }
+  }
+}
+// Duplicate skill picks are dropped by precedence (background beats class picks).
+const dup = normalize(base({ backgroundKey: 'soldier', skills: ['athletics', 'perception'] }))
+eq(dup.skills, ['perception'], 'class pick duplicating background skill is dropped')
+// Lowering level trims expertise and level-ups.
+const trimmed = normalize(base({ classKey: 'rogue', level: 4, skills: ['stealth', 'acrobatics', 'deception', 'insight'], expertise: ['stealth', 'acrobatics', 'deception', 'insight'], levelUps: { 4: { type: 'asi', asi: { dex: 2 } }, 8: { type: 'asi', asi: { dex: 2 } } } }))
+eq([trimmed.expertise.length, Object.keys(trimmed.levelUps)], [2, ['4']], 'rogue 4 trims expertise and level-ups')
+eq(languageSlots(base({ raceKey: 'half-elf', subraceKey: '', backgroundKey: 'sage' })), 3, 'Half-elf sage language slots')
+console.log(`builder rules checked (${owed} owed choices across defaults)`)
+
 console.log(fails ? `${fails} failures` : 'all checks passed')
 process.exit(fails ? 1 : 0)

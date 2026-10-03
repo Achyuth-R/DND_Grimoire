@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { getCharacter, upsertCharacter } from '../store.js'
-import { derive, racialTraits, defaultFeatureText, classFeaturesUpTo } from '../compute.js'
-import { ABILITIES, fmtMod } from '../data/abilities.js'
-import { spellsForClass, getSpell, spellLevelName } from '../data/spells.js'
+import { derive, racialTraits, defaultFeatureText, classFeaturesUpTo, spellOptions, defaultEquipmentText } from '../compute.js'
+import { ABILITIES, SKILLS, fmtMod } from '../data/abilities.js'
+import { getSpell, spellLevelName } from '../data/spells.js'
+import { DRAGON_ANCESTRY } from '../builderRules.js'
 
 export default function CharacterSheet() {
   const { id } = useParams()
@@ -34,8 +35,12 @@ export default function CharacterSheet() {
   const traits = racialTraits(char)
   const features = classFeaturesUpTo(char)
   const defaults = defaultFeatureText(char)
-  const subclass = d.cls?.subclasses?.find((s) => s.key === char.subclassKey)
-  const subrace = d.race?.subraces?.find((s) => s.key === char.subraceKey)
+  const subclass = d.sub
+  const subrace = d.ri?.sub
+  const ancestry = DRAGON_ANCESTRY.find((a) => a.key === char.raceChoices?.ancestry)
+  const infusions = (d.cls?.infusions || []).filter((i) => (char.infusions || []).includes(i.key))
+  const toolLabel = (t) => (d.toolExpertise.includes('thieves-tools') && t === "Thieves' tools" ? `${t} (expertise)` : t)
+  const hasSpellPage = !!d.spell || d.innate.length > 0
   const hpCurrent = char.hpCurrent ?? d.maxHp
   const ab3 = (k) => k.slice(0, 3).toUpperCase()
 
@@ -114,10 +119,11 @@ export default function CharacterSheet() {
               <div className="cs-box" style={{ flex: 1 }}>
                 <div className="cs-section-title">Other Proficiencies & Languages</div>
                 <div style={{ fontSize: 11, lineHeight: 1.5 }}>
-                  <p style={{ margin: '0 0 4px' }}><b>Armor:</b> {d.cls?.armor?.length ? d.cls.armor.join(', ') : 'None'}</p>
-                  <p style={{ margin: '0 0 4px' }}><b>Weapons:</b> {d.cls?.weapons?.join(', ')}</p>
-                  <p style={{ margin: '0 0 4px' }}><b>Tools:</b> {d.cls?.tools?.length ? d.cls.tools.join(', ') : '—'}</p>
-                  <p style={{ margin: 0 }}><b>Languages:</b> {d.race?.languages?.join(', ')}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Armor:</b> {d.profs.armor.length ? d.profs.armor.join(', ') : 'None'}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Weapons:</b> {d.profs.weapons.join(', ')}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Tools:</b> {d.profs.tools.length ? d.profs.tools.map(toolLabel).join(', ') : '—'}</p>
+                  <p style={{ margin: '0 0 4px' }}><b>Languages:</b> {d.profs.languages.join(', ')}</p>
+                  <p style={{ margin: 0 }}><b>Size:</b> {d.size}{d.darkvision ? ` · Darkvision ${d.darkvision} ft` : ''}{ancestry ? ` · ${ancestry.name} dragon ancestry (${ancestry.damage})` : ''}</p>
                 </div>
               </div>
             </div>
@@ -125,7 +131,7 @@ export default function CharacterSheet() {
             {/* CENTER */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div className="cs-stat3">
-                <div className="cs-stat"><div className="big">{d.baseAC}</div><div className="lbl">Armor Class</div></div>
+                <div className="cs-stat" title={[d.acLabel, ...d.acNotes].join('\n')}><div className="big">{d.ac}</div><div className="lbl">Armor Class</div></div>
                 <div className="cs-stat"><div className="big">{fmtMod(d.initiative)}</div><div className="lbl">Initiative</div></div>
                 <div className="cs-stat"><div className="big">{d.speed}</div><div className="lbl">Speed</div></div>
               </div>
@@ -192,10 +198,22 @@ export default function CharacterSheet() {
                   </ul>
                   <div className="cs-feat-h">Background Feature: {d.bg?.feature?.name}</div>
                   <p style={{ fontSize: 11, fontStyle: 'italic', margin: '0 0 8px', paddingLeft: 8, borderLeft: '2px solid #ccc' }}>{d.bg?.feature?.desc}</p>
+                  {(d.feats.length > 0 || d.fightingStyle || infusions.length > 0) && (
+                    <>
+                      <div className="cs-feat-h">Feats & Choices</div>
+                      <ul className="cs-feat-list">
+                        {d.feats.map(({ feat, choices, source }) => (
+                          <li key={feat.key + source}><b>{feat.name}</b> ({source}){choices.ability ? ` · +1 ${choices.ability.toUpperCase()}` : ''}{choices.skills?.length ? ` · ${choices.skills.map((k) => SKILLS.find((s) => s.key === k)?.name).join(', ')}` : ''}</li>
+                        ))}
+                        {d.fightingStyle && <li><b>Fighting Style:</b> {d.fightingStyle.name}</li>}
+                        {infusions.length > 0 && <li><b>Infusions:</b> {infusions.map((i) => i.name).join(', ')}</li>}
+                      </ul>
+                    </>
+                  )}
                   <div className="cs-feat-h">Class Features {subclass ? `& ${subclass.name}` : ''}</div>
                   <textarea
                     className="cs-ta" style={{ minHeight: 140, border: '1px dashed #ccc', padding: 4, borderRadius: 4 }}
-                    value={char.featuresText || defaults.compact}
+                    value={char.featuresText ?? defaults.compact}
                     onChange={(e) => update('featuresText', e.target.value)}
                   />
                 </div>
@@ -205,7 +223,7 @@ export default function CharacterSheet() {
               <div className="cs-trait-box" style={{ minHeight: 120 }}>
                 <textarea
                   className="cs-ta" style={{ flex: 1, minHeight: 90 }}
-                  value={char.equipmentText || d.bg?.equipment || ''}
+                  value={char.equipmentText ?? defaultEquipmentText(char, d)}
                   onChange={(e) => update('equipmentText', e.target.value)}
                   placeholder="Equipment and currency…"
                 />
@@ -215,30 +233,42 @@ export default function CharacterSheet() {
           </div>
         </div>
 
-        {/* ===== PAGE 2: SPELLCASTING (casters only) ===== */}
-        {d.spell && (
+        {/* ===== PAGE 2: SPELLCASTING (class casters, or racial/feat spells) ===== */}
+        {hasSpellPage && (
           <div className="cs-page">
             <div className="cs-head">
               <div className="cs-name-wrap">
                 <div className="cs-name">Spellcasting</div>
-                <div className="cs-name-label">Spellcasting Class — {d.cls?.name}</div>
+                <div className="cs-name-label">{d.spell ? `Spellcasting Class — ${d.cls?.name}` : 'Racial & Feat Spells'}</div>
               </div>
-              <div className="cs-meta">
-                <Meta label="Spell Ability" value={ab3(d.spell.ability)} />
-                <Meta label="Spell Save DC" value={d.spell.dc} />
-                <Meta label="Spell Atk Bonus" value={fmtMod(d.spell.attack)} />
-              </div>
+              {d.spell && (
+                <div className="cs-meta">
+                  <Meta label="Spell Ability" value={ab3(d.spell.ability)} />
+                  <Meta label="Spell Save DC" value={d.spell.dc} />
+                  <Meta label="Spell Atk Bonus" value={fmtMod(d.spell.attack)} />
+                </div>
+              )}
             </div>
+            {d.spell && (
+              <div className="cs-slots">
+                {d.spell.slots.map((s) => (
+                  <div className="cs-slot" key={s.level}>
+                    <div className="lvl">{s.pact ? `Pact · ${spellLevelName(s.level)}` : spellLevelName(s.level)}</div>
+                    <div className="cs-pips">{Array.from({ length: s.count }, (_, i) => <span className="cs-pip" key={i} />)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="cs-spell-grid">
               <div className="cs-spell-pane">
                 <div className="cs-section-title">Cantrips & Spells</div>
-                <SpellPicker char={char} update={update} />
+                <SpellPicker char={char} update={update} d={d} />
               </div>
               <div className="cs-spell-pane">
                 <div className="cs-section-title">Class & Subclass Abilities</div>
                 <textarea
                   className="cs-ta" style={{ flex: 1 }}
-                  value={char.abilitiesText || defaults.detailed}
+                  value={char.abilitiesText ?? defaults.detailed}
                   onChange={(e) => update('abilitiesText', e.target.value)}
                 />
               </div>
@@ -247,7 +277,7 @@ export default function CharacterSheet() {
         )}
 
         {/* Non-casters: full feature reference page (auto-filled from compendium) */}
-        {!d.spell && features.length > 0 && (
+        {!hasSpellPage && features.length > 0 && (
           <div className="cs-page">
             <div className="cs-head">
               <div className="cs-name-wrap">
@@ -258,7 +288,7 @@ export default function CharacterSheet() {
             <div className="cs-spell-pane" style={{ minHeight: 'auto' }}>
               <textarea
                 className="cs-ta" style={{ flex: 1, minHeight: 700 }}
-                value={char.abilitiesText || defaults.detailed}
+                value={char.abilitiesText ?? defaults.detailed}
                 onChange={(e) => update('abilitiesText', e.target.value)}
               />
             </div>
@@ -269,60 +299,83 @@ export default function CharacterSheet() {
   )
 }
 
-function SpellPicker({ char, update }) {
+// Spell list for the sheet: the player's chosen spells plus everything granted automatically.
+// Adding is limited to legal spells (class list, slot level) and the known/prepared counts.
+function SpellPicker({ char, update, d }) {
   const [q, setQ] = useState('')
-  const available = spellsForClass(char.classKey)
-  const selected = (char.spells || []).map(getSpell).filter(Boolean)
+  const opts = spellOptions(char, d)
+  const chosen = new Set(char.spells || [])
+  const legal = new Set(opts ? [...opts.cantrips, ...opts.leveled].map((s) => s.key) : [])
+  const entries = [
+    ...[...chosen].map((k) => (legal.has(k)
+      ? { key: k, tag: null, removable: true }
+      : { key: k, tag: '⚠', title: 'Not on your spell list or above your spell level — remove it, or fix it in the builder', removable: true })),
+    ...(d.spell?.alwaysPrepared || []).map((k) => ({ key: k, tag: '✦', title: 'Always prepared' })),
+    ...(d.spell?.bonusCantrips || []).map((k) => ({ key: k, tag: '✦', title: 'Granted by your subclass' })),
+    ...d.innate.map((s) => ({ key: s.key, tag: '◆', title: `${s.source} · DC ${s.dc}, +${s.attack} to hit (${s.ability.toUpperCase()})` })),
+  ]
+  const seen = new Set()
   const byLevel = {}
-  selected.forEach((s) => { (byLevel[s.level] ||= []).push(s) })
-  Object.values(byLevel).forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name)))
-
-  const toggle = (key) => {
-    const has = (char.spells || []).includes(key)
-    update('spells', has ? char.spells.filter((k) => k !== key) : [...(char.spells || []), key])
+  for (const e of entries) {
+    const s = getSpell(e.key)
+    if (!s || seen.has(s.key)) continue
+    seen.add(s.key)
+    ;(byLevel[s.level] ||= []).push({ ...e, spell: s })
   }
+  Object.values(byLevel).forEach((arr) => arr.sort((a, b) => a.spell.name.localeCompare(b.spell.name)))
 
-  const results = q.trim()
-    ? available.filter((s) => s.name.toLowerCase().includes(q.toLowerCase()) && !(char.spells || []).includes(s.key)).slice(0, 8)
+  const cantripCount = opts ? opts.cantrips.filter((s) => chosen.has(s.key)).length : 0
+  const leveledCount = opts ? opts.leveled.filter((s) => chosen.has(s.key)).length : 0
+  const canAdd = (s) => (s.level === 0 ? cantripCount < opts.cantripLimit : leveledCount < opts.leveledLimit)
+  const toggle = (key) => update('spells', chosen.has(key) ? char.spells.filter((k) => k !== key) : [...(char.spells || []), key])
+
+  const results = opts && q.trim()
+    ? [...opts.cantrips, ...opts.leveled].filter((s) => s.name.toLowerCase().includes(q.toLowerCase()) && !chosen.has(s.key)).slice(0, 8)
     : []
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-      <div className="no-print" style={{ position: 'relative', marginBottom: 8 }}>
-        <input
-          className="cs-spell-search" value={q} onChange={(e) => setQ(e.target.value)}
-          placeholder={`Search ${char.classKey} spells to add…`}
-        />
-        {results.length > 0 && (
-          <div className="cs-spell-results">
-            {results.map((s) => (
-              <button key={s.key} className="cs-spell-result" onClick={() => { toggle(s.key); setQ('') }}>
-                <span><b>{s.name}</b> <span style={{ color: '#888' }}>· {spellLevelName(s.level)} · {s.school}</span></span>
-                <span style={{ color: '#1565c0', fontWeight: 700 }}>+ Add</span>
-              </button>
-            ))}
+      {opts && (
+        <div className="no-print" style={{ position: 'relative', marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: '#666', marginBottom: 4 }}>
+            Cantrips {cantripCount}/{opts.cantripLimit} · {opts.leveledLabel === 'spells known' ? 'Known' : 'Prepared'} {leveledCount}/{opts.leveledLimit}
           </div>
-        )}
-      </div>
+          <input className="cs-spell-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search your spell list to add…" />
+          {results.length > 0 && (
+            <div className="cs-spell-results">
+              {results.map((s) => (
+                <button key={s.key} className="cs-spell-result" disabled={!canAdd(s)} onClick={() => { toggle(s.key); setQ('') }}>
+                  <span><b>{s.name}</b> <span style={{ color: '#888' }}>· {spellLevelName(s.level)} · {s.school}</span></span>
+                  <span style={{ color: canAdd(s) ? '#1565c0' : '#999', fontWeight: 700 }}>{canAdd(s) ? '+ Add' : 'Limit reached'}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        {selected.length === 0 && <p className="no-print" style={{ fontSize: 12, color: '#888' }}>No spells added yet. Search above to add known/prepared spells.</p>}
+        {seen.size === 0 && <p className="no-print" style={{ fontSize: 12, color: '#888' }}>No spells yet. Search above to add known/prepared spells.</p>}
         {Object.keys(byLevel).map(Number).sort((a, b) => a - b).map((lvl) => (
           <div key={lvl} style={{ marginBottom: 8 }}>
             <div className="cs-spell-lvl">{spellLevelName(lvl)}</div>
-            {byLevel[lvl].map((s) => (
+            {byLevel[lvl].map(({ spell: s, tag, title, removable }) => (
               <div className="cs-spell-item" key={s.key}>
-                <span title={s.desc}>
+                <span title={title || s.desc}>
                   {s.name}
+                  {tag && <span className="cs-spell-flag" title={title}>{tag}</span>}
                   {s.conc && <span className="cs-spell-flag" title="Concentration">C</span>}
                   {s.ritual && <span className="cs-spell-flag" title="Ritual">R</span>}
                 </span>
-                <button className="cs-spell-x no-print" onClick={() => toggle(s.key)} title="Remove">×</button>
+                {removable && <button className="cs-spell-x no-print" onClick={() => toggle(s.key)} title="Remove">×</button>}
               </div>
             ))}
           </div>
         ))}
       </div>
+      {(d.spell?.alwaysPrepared?.length > 0 || d.innate.length > 0) && (
+        <div style={{ fontSize: 10, color: '#777', marginTop: 4 }}>✦ always prepared / granted · ◆ racial or feat spell</div>
+      )}
     </div>
   )
 }

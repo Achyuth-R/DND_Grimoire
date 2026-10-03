@@ -6,9 +6,9 @@ import { getRace } from './data/races.js'
 import { getBackground } from './data/backgrounds.js'
 import { ABILITIES, SKILLS, abilityMod, profBonus } from './data/abilities.js'
 import { getFeat } from './data/featMechanics.js'
-import { getSpellByName, getSpell } from './data/spells.js'
+import { getSpellByName, getSpell, ALL_SPELLS } from './data/spells.js'
 import { slotsFor, maxSpellLevel } from './data/spellSlots.js'
-import { getArmor, getWeapon, STARTING_EQUIPMENT, SHIELD } from './data/equipment.js'
+import { ARMOR, getArmor, getWeapon, STARTING_EQUIPMENT, STARTING_GOLD, SHIELD } from './data/equipment.js'
 import { FIGHTING_STYLES } from './data/classMechanics.js'
 
 const ABILITY_KEYS = ABILITIES.map((a) => a.key)
@@ -143,7 +143,8 @@ export function inventory(char) {
   const groups = STARTING_EQUIPMENT[char.classKey] || []
   const eq = char.equipment || {}
   const inv = { weapons: [], armor: [], shield: false, gear: [] }
-  if (eq.gold) return inv
+  // Taking starting wealth: any armor or shield may be bought, so all can be worn.
+  if (eq.gold) return { ...inv, armor: ARMOR.map((a) => a.key), shield: true, bought: true }
   groups.forEach((g, gi) => {
     const oi = g.fixed ? 0 : eq.choices?.[gi]
     const items = g.fixed || g.options?.[oi]
@@ -208,7 +209,10 @@ export function derive(char) {
   ]))
 
   // Expertise only counts on proficient skills and only as many as the class grants.
-  const classExpertise = (char.expertise || []).filter((s) => skillProfs.has(s)).slice(0, expertiseAllowed(char))
+  // Tool expertise picks (e.g. a rogue's thieves' tools) use up a slot but aren't skills.
+  const expertisePicks = (char.expertise || []).slice(0, expertiseAllowed(char))
+  const classExpertise = expertisePicks.filter((s) => skillProfs.has(s))
+  const toolExpertise = expertisePicks.filter((s) => !SKILLS.some((k) => k.key === s))
   const subExpertise = sub ? [...(sub.expertiseSkills || []), ...(sub.skillChoice?.expertise ? subSkills : [])] : []
   const featExpertise = feats.flatMap(({ feat, choices }) => (feat.expertiseChoice ? (choices.expertise || []).slice(0, feat.expertiseChoice) : []))
   const expertise = new Set([...classExpertise, ...subExpertise, ...featExpertise].filter((s) => skillProfs.has(s)))
@@ -271,7 +275,8 @@ export function derive(char) {
       acOptions.push({ value: v, label: `Unarmored Defense (${u.base || 10} + ${u.abilities.map((k) => k.toUpperCase()).join(' + ')})${shieldOn ? ' + shield' : ''}` })
     }
   }
-  const bestAc = acOptions.reduce((a, b) => (b.value > a.value ? b : a))
+  // On a tie, prefer the later (feature-based) option so the sheet names the feature.
+  const bestAc = acOptions.reduce((a, b) => (b.value >= a.value ? b : a))
   const acNotes = []
   if (armor && !armorProficient(armor, profs.armor)) acNotes.push(`Not proficient with ${armor.name.toLowerCase()} armor: disadvantage on STR/DEX rolls and no spellcasting.`)
   if (armor?.stealthDis) acNotes.push('Disadvantage on Stealth checks.')
@@ -322,7 +327,7 @@ export function derive(char) {
   })
 
   return {
-    cls, race, sub, bg, ri, feats, scores, mods, pb, saves, skills, profs, expertise,
+    cls, race, sub, bg, ri, feats, scores, mods, pb, saves, skills, profs, expertise, toolExpertise,
     maxHp, ac: bestAc.value, acLabel: bestAc.label, acNotes, baseAC: bestAc.value,
     initiative, speed, darkvision, size, passivePerception, hitDie: hd,
     spell, innate, inventory: inv, attacks, fightingStyle: style,
@@ -374,6 +379,23 @@ function deriveInnateSpells(char, ri, feats, mods, pb) {
   return out.filter((s, i) => out.findIndex((o) => o.key === s.key) === i)
 }
 
+// Spells a character may choose for their class spellcasting, with the limits that apply.
+// Always-prepared and bonus spells are granted automatically and excluded from the pools.
+export function spellOptions(char, d = derive(char)) {
+  const sp = d.spell
+  if (!sp) return null
+  const auto = new Set([...sp.alwaysPrepared, ...sp.bonusCantrips])
+  const onList = (s) => s.classes.some((c) => sp.lists.includes(c)) || sp.expanded.includes(s.key)
+  const pool = ALL_SPELLS.filter((s) => onList(s) && !auto.has(s.key))
+  return {
+    cantrips: pool.filter((s) => s.level === 0),
+    leveled: pool.filter((s) => s.level >= 1 && s.level <= sp.maxLevel),
+    cantripLimit: sp.cantripsKnown,
+    leveledLimit: sp.spellsKnown ?? sp.preparedMax ?? 0,
+    leveledLabel: sp.spellsKnown != null ? 'spells known' : 'prepared spells',
+  }
+}
+
 // ---------- Sheet text helpers ----------
 
 // All racial traits (base + subrace) as {name, desc} for the sheet.
@@ -404,3 +426,18 @@ export function classFeaturesUpTo(char) {
 }
 
 export const spellName = (key) => getSpell(key)?.name || key
+
+// Pre-filled equipment list for the sheet: starting gear (or wealth) plus background gear.
+export function defaultEquipmentText(char, d = derive(char)) {
+  const inv = d.inventory
+  const lines = []
+  if (inv.bought) lines.push(`Starting wealth: ${STARTING_GOLD[char.classKey]}`)
+  else {
+    inv.weapons.forEach((w) => lines.push(`${w.qty > 1 ? `${w.qty} × ` : ''}${getWeapon(w.key)?.name}`))
+    inv.armor.forEach((k) => lines.push(`${getArmor(k)?.name} armor${k === char.equippedArmor ? ' (worn)' : ''}`))
+    if (inv.shield) lines.push(`Shield${char.shield ? ' (equipped)' : ''}`)
+    inv.gear.forEach((g) => lines.push(g))
+  }
+  if (d.bg?.equipment) lines.push('', `Background: ${d.bg.equipment}`)
+  return lines.join('\n')
+}
