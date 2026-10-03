@@ -3,8 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CLASSES, ALL_SUBCLASSES, getClass } from '../data/classes.js'
 import { RACES } from '../data/races.js'
 import { BACKGROUNDS } from '../data/backgrounds.js'
-import { ALL_SPELLS, spellLevelName } from '../data/spells.js'
-import { MONSTERS, crLabel } from '../data/monsters.js'
+import { ALL_SPELLS, spellLevelName, SPELL_SOURCES } from '../data/spells.js'
+import { MONSTERS, crLabel, crValue } from '../data/monsters.js'
 import { SKILLS } from '../data/abilities.js'
 import { FEATS } from '../data/feats.js'
 import { ITEMS } from '../data/items.js'
@@ -46,7 +46,8 @@ const featPrereq = (d) => {
   const m = (d || '').match(/Prerequisite:\s*([^\n.]+)/i)
   return m ? m[1].trim() : null
 }
-const crBadgeStyle = (cr) => {
+const crBadgeStyle = (raw) => {
+  const cr = crValue(raw)
   const t = cr <= 4 ? ['rgba(108,192,112,0.14)', '#6cc070']
     : cr <= 10 ? ['rgba(224,179,65,0.14)', '#e0b341']
     : cr <= 16 ? ['rgba(224,138,77,0.16)', '#e08a4d']
@@ -147,6 +148,7 @@ export default function Compendium() {
   const [q, setQ] = useState('')
   const [spellLevel, setSpellLevel] = useState('all')
   const [spellClass, setSpellClass] = useState('all')
+  const [spellSource, setSpellSource] = useState('all')
 
   const [monCr, setMonCr] = useState('all')
   const [monType, setMonType] = useState('all')
@@ -178,6 +180,10 @@ export default function Compendium() {
           <select className="filter-sel" value={spellClass} onChange={(e) => setSpellClass(e.target.value)}>
             <option value="all">All classes</option>
             {CLASSES.filter((c) => c.spellcaster).map((c) => <option key={c.key} value={c.key}>{c.name}</option>)}
+          </select>
+          <select className="filter-sel" value={spellSource} onChange={(e) => setSpellSource(e.target.value)}>
+            <option value="all">All sources</option>
+            {SPELL_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </div>
       )}
@@ -276,6 +282,7 @@ export default function Compendium() {
           .filter((s) => match(s.name) || match(s.desc))
           .filter((s) => spellLevel === 'all' || s.level === Number(spellLevel))
           .filter((s) => spellClass === 'all' || s.classes.includes(spellClass))
+          .filter((s) => spellSource === 'all' || s.source === spellSource)
         const columns = [
           { key: 'name', label: 'Name', width: '26%', sortVal: (s) => s.name, render: (s) => <span className="cmp-name">{s.name}</span> },
           { key: 'level', label: 'Level', width: '13%', sortVal: (s) => s.level, render: (s) => <span className="cmp-muted">{spellLevelName(s.level)}</span> },
@@ -292,7 +299,7 @@ export default function Compendium() {
         ]
         return (
           <>
-            <div className="hint" style={{ marginBottom: 14 }}>{list.length} of {ALL_SPELLS.length} SRD spells. Click a column to sort.</div>
+            <div className="hint" style={{ marginBottom: 14 }}>{list.length} of {ALL_SPELLS.length} spells. Click a column to sort.</div>
             <SortableTable columns={columns} rows={list} rowKey={(s) => s.key} initial={{ key: 'level', asc: true }} to={(s) => `/compendium/spell/${s.key}`} />
           </>
         )
@@ -309,13 +316,13 @@ export default function Compendium() {
         }
         const list = MONSTERS
           .filter((m) => match(m.name) || match(m.type))
-          .filter((m) => checkCr(m.cr))
+          .filter((m) => checkCr(crValue(m.cr)))
           .filter((m) => monType === 'all' || m.type.toLowerCase().includes(monType))
           .filter((m) => monSize === 'all' || m.size === monSize)
           .filter((m) => monSource === 'all' || (m.source || 'SRD') === monSource)
         const columns = [
           { key: 'name', label: 'Name', width: '28%', sortVal: (m) => m.name, render: (m) => <span className="cmp-name">{m.name}</span> },
-          { key: 'cr', label: 'CR', width: '12%', sortVal: (m) => m.cr, render: (m) => <span className="cr-badge" style={crBadgeStyle(m.cr)}>CR {crLabel(m.cr)}</span> },
+          { key: 'cr', label: 'CR', width: '12%', sortVal: (m) => crValue(m.cr), render: (m) => <span className="cr-badge" style={crBadgeStyle(m.cr)}>CR {crLabel(m.cr)}</span> },
           { key: 'type', label: 'Type', width: '24%', sortVal: (m) => m.type, render: (m) => <span className="cmp-muted" style={{ textTransform: 'capitalize' }}>{m.type}</span> },
           { key: 'size', label: 'Size', width: '12%', sortVal: (m) => SIZES.indexOf(m.size), render: (m) => <span className="cmp-muted">{m.size}</span> },
           { key: 'ac', label: 'AC', width: '8%', num: true, sortVal: (m) => m.ac, render: (m) => m.ac },

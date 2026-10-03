@@ -55,6 +55,15 @@ export const RACES = [
           { name: 'Mask of the Wild', desc: 'You can attempt to hide even when you are only lightly obscured by foliage, heavy rain, falling snow, mist, and other natural phenomena.' }
         ] 
       },
+      { 
+        key: 'drow', name: 'Dark Elf (Drow)', asi: { cha: 1 }, 
+        traits: [
+          { name: 'Superior Darkvision', desc: 'Your darkvision has a radius of 120 feet.' },
+          { name: 'Sunlight Sensitivity', desc: 'You have disadvantage on attack rolls and on Wisdom (Perception) checks that rely on sight when you, the target of your attack, or whatever you are trying to perceive is in direct sunlight.' },
+          { name: 'Drow Magic', desc: 'You know the dancing lights cantrip. When you reach 3rd level, you can cast the faerie fire spell once with this trait and regain the ability to do so when you finish a long rest. When you reach 5th level, you can cast the darkness spell once with this trait and regain the ability to do so when you finish a long rest. Charisma is your spellcasting ability for these spells.' },
+          { name: 'Drow Weapon Training', desc: 'You have proficiency with rapiers, shortswords, and hand crossbows.' }
+        ] 
+      },
     ],
   },
   {
@@ -88,7 +97,15 @@ export const RACES = [
     desc: 'Humans are the most adaptable and ambitious people among the common races. They have widely varying tastes, morals, and customs in the many different lands where they have settled.',
     traits: [],
     languages: ['Common', 'One extra language of your choice'],
-    subraces: [],
+    subraces: [
+      { 
+        key: 'variant', name: 'Variant Human', asi: { other: 'Two different ability scores of your choice increase by 1.' }, 
+        traits: [
+          { name: 'Skills', desc: 'You gain proficiency in one skill of your choice.' },
+          { name: 'Feat', desc: 'You gain one feat of your choice.' }
+        ] 
+      }
+    ],
   },
   {
     key: 'dragonborn',
@@ -240,6 +257,23 @@ export const RACES = [
       { name: 'Mountain Born', desc: 'You have resistance to cold damage. You\'re also acclimated to high altitude, including elevations above 20,000 feet.' },
     ],
     languages: ['Common', 'Giant'],
+    subraces: [],
+  },
+  {
+    key: 'custom-lineage',
+    name: 'Custom Lineage',
+    icon: '✨',
+    asi: { other: 'One ability score of your choice increases by 2' },
+    speed: 30,
+    size: 'Small or Medium',
+    age: 'Varies',
+    desc: 'Instead of choosing one of the game\'s races for your character at 1st level, you can use these traits to represent your character\'s lineage, giving you full control over how your character\'s origin shaped them.',
+    traits: [
+      { name: 'Creature Type', desc: 'You are a humanoid. You determine your appearance and whether you resemble any of your kin.' },
+      { name: 'Feat', desc: 'You gain one feat of your choice for which you qualify.' },
+      { name: 'Variable Trait', desc: 'You gain either darkvision with a range of 60 feet or proficiency in one skill of your choice.' }
+    ],
+    languages: ['Common', 'One other language of your choice'],
     subraces: [],
   }
 ];

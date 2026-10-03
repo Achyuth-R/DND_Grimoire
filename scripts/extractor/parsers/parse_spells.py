@@ -2,8 +2,39 @@ import fitz
 import json
 import re
 
-doc = fitz.open("DnD 5e Players Handbook.pdf")
+doc = fitz.open("source_pdfs/DnD 5e Players Handbook.pdf")
 
+spell_classes = {}
+current_class = None
+
+# PASS 1: Spell Lists
+for i in range(187, 192):
+    page = doc.load_page(i)
+    text = page.get_text('text')
+    lines = text.split('\n')
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        
+        clean_line = line.replace(' ', '')
+        if clean_line.endswith('Spells') and clean_line != 'Spells':
+            c = clean_line.replace('Spells', '').lower()
+            if c in ['bard', 'cleric', 'druid', 'paladin', 'ranger', 'sorcerer', 'warlock', 'wizard']:
+                current_class = c
+            continue
+            
+        if 'Level' in line or 'Cantrips' in line or '1st' in line or '2nd' in line or '3rd' in line or '4th' in line or '5th' in line or '6th' in line or '7th' in line or '8th' in line or '9th' in line or 'PART' in line or line.isdigit():
+            continue
+            
+        if current_class and line and len(line) > 2 and line[0].isupper():
+            key = re.sub(r'[^a-z0-9]+', '', line.lower())
+            if key not in spell_classes:
+                spell_classes[key] = set()
+            spell_classes[key].add(current_class)
+
+print(f"Extracted mappings for {len(spell_classes)} spells.")
+
+# PASS 2: Spell Descriptions
 spells = []
 current_spell = None
 desc_buffer = []
@@ -11,8 +42,6 @@ desc_buffer = []
 level_school_pattern = re.compile(r'(\d)(?:st|nd|rd|th)-level\s+([a-zA-Z]+)|([a-zA-Z]+)\s+cantrip', re.IGNORECASE)
 
 def clean_name(name):
-    # D e m i p l a n e -> Demiplane
-    # D i m e n s i o n  D o o r -> Dimension Door
     name = name.strip()
     if re.search(r'[a-zA-Z] [a-zA-Z]', name):
         name = re.sub(r'(?<=[a-zA-Z]) (?=[a-zA-Z])', '', name)
@@ -21,22 +50,20 @@ def clean_name(name):
 def finalize_spell():
     global current_spell, desc_buffer
     if current_spell:
-        current_spell['desc'] = "\n".join(desc_buffer).strip()
+        current_spell['desc'] = "\n\n".join((" ".join(desc_buffer).split("\n"))).strip()
         spells.append(current_spell)
         current_spell = None
         desc_buffer = []
 
 prev_block_text = ""
 
-# PHB Spells roughly 211 to 289
-for page_num in range(211, 289):
+for page_num in range(191, 270):
     page = doc.load_page(page_num)
     blocks = page.get_text("blocks")
     for b in blocks:
         text = b[4].strip()
         if not text: continue
         
-        # skip headers/footers
         if text.startswith("PART 3 | SPELLS") or text.isdigit():
             continue
 
@@ -54,15 +81,18 @@ for page_num in range(211, 289):
                 school = match.group(3).capitalize()
             
             name = clean_name(prev_block_text.replace('\n', ' '))
-            
-            # create new spell
             key = re.sub(r'[^a-z0-9]+', '-', name.lower()).strip('-')
+            
+            match_key = key.replace('-', '')
+            classes = list(spell_classes.get(match_key, ["wizard"])) # default to wizard if missing
+            
             current_spell = {
+                "source": "PHB",
                 "key": key,
                 "name": name,
                 "level": level,
                 "school": school,
-                "classes": ["wizard"], # Placeholder, PHB doesn't list classes in description
+                "classes": classes,
                 "time": "",
                 "range": "",
                 "components": "",
@@ -78,14 +108,9 @@ for page_num in range(211, 289):
                 current_spell['components'] = text.replace("Components:", "").strip()
             elif text.startswith("Duration:"):
                 current_spell['duration'] = text.replace("Duration:", "").strip()
-            elif "At Higher Levels." in text:
-                desc_buffer.append(text.replace("\n", " "))
             else:
                 desc_buffer.append(text.replace("\n", " "))
-        else:
-            # We are not in a spell yet. Just track previous block.
-            pass
-            
+        
         prev_block_text = text
 
 finalize_spell()

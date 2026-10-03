@@ -312,6 +312,22 @@ Source: Player's Handbook
 Skill Proficiencies: Sleight of Hand, Stealth Tool Proficiencies: Disguise kit, thieves' tools Languages: None Equipment: A small knifeValue:0 Weight:0, a map of the city you grew up in, a pet mouse, a token to remember your parents by, a set of common clothesValue:5sp Weight:3lbs, and a pouchValue:5sp Weight:1lb containing 10gp`,
     equipment: 'A small knife, a map of the city you grew up in, a pet mouse, a token to remember your parents, common clothes, and a belt pouch containing 10 gp.',
   },
+  {
+    key: 'sailor',
+    name: 'Sailor',
+    icon: '⛵',
+    skills: ['athletics', 'perception'],
+    tools: ['Navigator\'s tools', 'Vehicles (water)'],
+    languages: 0,
+    desc: `You sailed on a seagoing vessel for years. In that time, you faced down mighty storms, monsters of the deep, and those who wanted to sink your craft to the bottomless depths. Your first love is the distant line of the horizon, but the time has come to try your hand at something new.
+
+Discuss the nature of the ship you previously sailed with your Dungeon Master. Was it a merchant ship, a naval vessel, a ship of discovery, or a pirate ship? How famous (or infamous) is it? Is it widely traveled, or does it stay close to home?
+
+Source: Player's Handbook
+
+Skill Proficiencies: Athletics, Perception Tool Proficiencies: Navigator's tools, vehicles (water) Languages: None Equipment: A belaying pin (club), 50 feet of silk rope, a lucky charm such as a rabbit foot or a small stone with a hole in the center (or you may roll for a random trinket on the Trinkets table in chapter 5), a set of common clothes, and a belt pouch containing 10 gp`,
+    equipment: 'A belaying pin (club), 50 feet of silk rope, a lucky charm, a set of common clothes, and a belt pouch containing 10 gp.',
+  },
 ]
 
 export const getBackground = (key) => BACKGROUNDS.find((b) => b.key === key)
