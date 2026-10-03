@@ -5,6 +5,7 @@ import CompendiumDetail from './pages/CompendiumDetail.jsx'
 import Characters from './pages/Characters.jsx'
 import CharacterBuilder from './pages/CharacterBuilder.jsx'
 import CharacterSheet from './pages/CharacterSheet.jsx'
+import SyncBadge from './components/SyncBadge.jsx'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <NavLink to="/characters" className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}>Characters</NavLink>
         </div>
         <div className="spacer" />
+        <SyncBadge />
         <Link to="/builder" className="btn primary sm">+ New Character</Link>
       </nav>
       <Routes>

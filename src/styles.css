@@ -82,6 +82,10 @@ button { font-family: inherit; cursor: pointer; }
 /* character roster cards */
 .char-card { cursor: pointer; display: flex; flex-direction: column; }
 .char-card:focus-visible { outline: none; border-color: var(--gold); box-shadow: var(--shadow); }
+.sync-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+.sync-badge.synced { color: #8fd694; border-color: #3d7a41; }
+.sync-badge.syncing { color: var(--gold); border-color: var(--gold-dim); }
+.sync-badge.offline, .sync-badge.error { color: var(--red-glow); border-color: var(--red); }
 .char-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .char-actions { flex-wrap: wrap; }
 .notice { margin-top: 14px; padding: 10px 14px; border-radius: 8px; font-size: 14px; border: 1px solid var(--border); background: var(--panel); }

@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { loadCharacters, deleteCharacter, exportCharacters, importCharacters } from '../store.js'
+import { loadCharacters, deleteCharacter, exportCharacters, importCharacters, onCharactersChanged } from '../store.js'
 import { getClass } from '../data/classes.js'
 import { getRace } from '../data/races.js'
 import { derive } from '../compute.js'
@@ -22,6 +22,8 @@ export default function Characters() {
   const nav = useNavigate()
   const fileRef = useRef(null)
   const [notice, setNotice] = useState(null)
+  // Refresh when shared characters arrive from another device.
+  useEffect(() => onCharactersChanged(() => setList(loadCharacters())), [])
 
   const exportAll = () => download(`grimoire-characters-${new Date().toISOString().slice(0, 10)}.json`, exportCharacters(list))
   const exportOne = (ch) => download(`${slug(ch.name)}.json`, exportCharacters([ch]))

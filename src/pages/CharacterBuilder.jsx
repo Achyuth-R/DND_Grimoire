@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getCharacter, upsertCharacter, newCharacter } from '../store.js'
+import { getCharacter, upsertCharacter, newCharacter, onCharactersChanged } from '../store.js'
 import { derive } from '../compute.js'
 import { fmtMod } from '../data/abilities.js'
 import { normalize, stepsFor, validateStep } from '../builderRules.js'
@@ -38,6 +38,12 @@ export default function CharacterBuilder() {
     setOriginal(id ? getCharacter(id) : null)
     setStepKey('race')
   }, [id])
+  // A character opened by link on a new device may arrive from the shared store after first render.
+  useEffect(() => onCharactersChanged(() => {
+    if (!id) return
+    setChar((prev) => prev || load(id))
+    setOriginal((prev) => prev || getCharacter(id) || null)
+  }), [id])
 
   const d = useMemo(() => (char ? derive(char) : null), [char])
   const steps = useMemo(() => (char ? stepsFor(char) : []), [char])

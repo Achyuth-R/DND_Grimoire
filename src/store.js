@@ -1,5 +1,16 @@
-// Character persistence via localStorage.
+// Character persistence. localStorage is the source the app reads synchronously;
+// sync.js (optional, Supabase) listens for local writes and mirrors them to the shared store.
 const KEY = 'grimoire.characters.v1'
+
+// Listeners for local writes: fn({ type: 'upsert', char } | { type: 'delete', id }).
+const writeListeners = new Set()
+export const onLocalWrite = (fn) => { writeListeners.add(fn); return () => writeListeners.delete(fn) }
+const emitWrite = (e) => writeListeners.forEach((fn) => fn(e))
+
+// Listeners for any change to the stored list (local or remote), so pages can refresh.
+const changeListeners = new Set()
+export const onCharactersChanged = (fn) => { changeListeners.add(fn); return () => changeListeners.delete(fn) }
+export const emitCharactersChanged = () => changeListeners.forEach((fn) => fn())
 
 export function loadCharacters() {
   try {
@@ -17,17 +28,26 @@ export function getCharacter(id) {
   return loadCharacters().find((c) => c.id === id)
 }
 
+// Save a character the player edited (stamps updatedAt and notifies sync).
 export function upsertCharacter(char) {
+  const stamped = { ...char, updatedAt: new Date().toISOString() }
+  putLocal(stamped)
+  emitWrite({ type: 'upsert', char: stamped })
+  return stamped
+}
+
+export function deleteCharacter(id) {
+  saveCharacters(loadCharacters().filter((c) => c.id !== id))
+  emitWrite({ type: 'delete', id })
+}
+
+// Write a character locally without stamping or notifying sync (used when applying remote data).
+export function putLocal(char) {
   const list = loadCharacters()
   const idx = list.findIndex((c) => c.id === char.id)
   if (idx >= 0) list[idx] = char
   else list.push(char)
   saveCharacters(list)
-  return char
-}
-
-export function deleteCharacter(id) {
-  saveCharacters(loadCharacters().filter((c) => c.id !== id))
 }
 
 export function newCharacter() {
@@ -100,14 +120,14 @@ export function importCharacters(text) {
   const incoming = Array.isArray(data) ? data : Array.isArray(data?.characters) ? data.characters : [data]
   const valid = incoming.filter((c) => c && typeof c === 'object' && c.id && c.classKey && c.raceKey && c.scores)
   if (!valid.length) throw new Error('No characters found in that file.')
-  const list = loadCharacters()
+  const existing = new Set(loadCharacters().map((c) => c.id))
   let added = 0
   let updated = 0
   for (const c of valid.map(migrateCharacter)) {
-    const idx = list.findIndex((x) => x.id === c.id)
-    if (idx >= 0) { list[idx] = c; updated++ } else { list.push(c); added++ }
+    if (existing.has(c.id)) updated++
+    else added++
+    upsertCharacter(c)
   }
-  saveCharacters(list)
   return { added, updated, skipped: incoming.length - valid.length }
 }
 

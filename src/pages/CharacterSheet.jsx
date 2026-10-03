@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getCharacter, upsertCharacter } from '../store.js'
+import { getCharacter, upsertCharacter, onCharactersChanged } from '../store.js'
 import { derive, racialTraits, defaultFeatureText, classFeaturesUpTo, spellOptions, defaultEquipmentText } from '../compute.js'
 import { ABILITIES, SKILLS, fmtMod } from '../data/abilities.js'
 import { getSpell, spellLevelName } from '../data/spells.js'
@@ -11,6 +11,12 @@ export default function CharacterSheet() {
   const [char, setChar] = useState(() => getCharacter(id))
   // Reload when navigating between different character sheets (same component instance).
   useEffect(() => { setChar(getCharacter(id)); window.scrollTo(0, 0) }, [id])
+  // Adopt a newer copy synced from another device (our own saves are never newer than local state).
+  useEffect(() => onCharactersChanged(() => setChar((prev) => {
+    const fresh = getCharacter(id)
+    if (!fresh) return prev
+    return !prev || Date.parse(fresh.updatedAt || 0) > Date.parse(prev.updatedAt || 0) ? fresh : prev
+  })), [id])
 
   if (!char) {
     return (
@@ -21,9 +27,7 @@ export default function CharacterSheet() {
   }
 
   const update = (field, value) => {
-    const next = { ...char, [field]: value }
-    setChar(next)
-    upsertCharacter(next)
+    setChar(upsertCharacter({ ...char, [field]: value }))
   }
   const updateAttack = (i, field, value) => {
     const attacks = (char.attacks || []).map((a, idx) => (idx === i ? { ...a, [field]: value } : a))
